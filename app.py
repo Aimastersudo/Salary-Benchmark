@@ -16,18 +16,38 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Data Loader
+# 3. DUAL DATABASE LOADER - Live Sync
 @st.cache_data
-def load_data():
+def load_databases():
     try:
-        data = pd.read_csv("salary_data.csv")
-        data['Variance %'] = ((data['Pioneer'] - data['Market']) / data['Market'] * 100).round(0).astype(int)
-        return data
+        # DB 1: Load Benchmark Data (Market limits, Categories, etc.)
+        bench_df = pd.read_csv("salary_data.csv")
+        
+        # DB 2: Load Actuals Payroll Data
+        payroll_df = pd.read_csv("actuals_payroll.csv")
+        
+        # Strip any accidental spaces from column names just in case
+        payroll_df.columns = payroll_df.columns.str.strip()
+        
+        # Calculate Dynamic Headcount from Payroll Data 
+        # (Counting occurrences of each Designation)
+        hc_df = payroll_df.groupby('Designation').size().reset_index(name='Live_HC')
+        
+        # Merge the Live Headcount into the Benchmark Data
+        merged_df = pd.merge(bench_df, hc_df, on='Designation', how='left')
+        
+        # Fill missing values with 0 (if a role currently has no employees)
+        merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
+        
+        # Calculate Market Variance %
+        merged_df['Variance %'] = ((merged_df['Pioneer'] - merged_df['Market']) / merged_df['Market'] * 100).round(0).astype(int)
+        
+        return merged_df
     except Exception as e:
-        st.error(f"Error loading CSV: {e}")
+        st.error(f"System Error: Please ensure BOTH 'salary_data.csv' and 'actuals_payroll.csv' are uploaded. Details: {e}")
         return None
 
-df = load_data()
+df = load_databases()
 
 if df is not None:
     # 4. Sidebar Filters
@@ -49,17 +69,19 @@ if df is not None:
     # 5. Dashboard View
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
+        st.caption("🟢 Live Headcount Synced with Actuals Payroll")
         
-        # Metrics - Headcount safely converted to Integer
+        # Metrics - Using dynamic 'Live_HC'
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Designations", len(f_df))
-        c2.metric("Total Headcount", int(f_df['HC'].sum())) 
+        c1.metric("Designations Scoped", len(f_df))
+        c2.metric("Live Headcount", int(f_df['Live_HC'].sum())) 
         c3.metric("Avg. Market Gap", f"{f_df['Variance %'].mean():.0f}%", delta_color="inverse")
-        c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
+        c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
 
         # Data Table
+        display_cols = ['Designation', 'Dept', 'Tier', 'Live_HC', 'Pioneer', 'Market', 'Variance %']
         st.subheader("Interactive Salary Matrix (AED)")
-        event = st.dataframe(f_df, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
+        event = st.dataframe(f_df[display_cols], use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
 
         # AI Insight
         if len(event.selection.rows) > 0:
@@ -69,8 +91,8 @@ if df is not None:
             <div class="salary-card">
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Dept']} 
-                    department is {abs(row['Variance %'])}% below market levels. With a headcount of {row['HC']}, 
-                    talent retention should be prioritized by Management.
+                    department is {abs(row['Variance %'])}% below market levels. With a current live headcount of <b>{row['Live_HC']}</b> (synced from payroll), 
+                    talent retention should be closely monitored.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -85,7 +107,6 @@ if df is not None:
 
         st.divider()
         st.subheader("Avg. Variance by Department (%)")
-        
         dept_avg = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
         
         fig2 = px.bar(dept_avg, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn')
@@ -95,7 +116,8 @@ if df is not None:
     # 7. Groups View
     elif page == "📁 Structural Groups":
         st.title("Organizational Tier Breakdown")
+        display_cols = ['Designation', 'Dept', 'Live_HC', 'Pioneer', 'Market', 'Variance %']
         t1, t2, t3 = st.tabs(["Leadership & Management", "Professional Staff", "Technical Operations"])
-        with t1: st.dataframe(f_df[f_df['Tier'] == 'Leadership & Management'], use_container_width=True, hide_index=True)
-        with t2: st.dataframe(f_df[f_df['Tier'] == 'Professional Staff'], use_container_width=True, hide_index=True)
-        with t3: st.dataframe(f_df[f_df['Tier'] == 'Technical Operations'], use_container_width=True, hide_index=True)
+        with t1: st.dataframe(f_df[f_df['Tier'] == 'Leadership & Management'][display_cols], use_container_width=True, hide_index=True)
+        with t2: st.dataframe(f_df[f_df['Tier'] == 'Professional Staff'][display_cols], use_container_width=True, hide_index=True)
+        with t3: st.dataframe(f_df[f_df['Tier'] == 'Technical Operations'][display_cols], use_container_width=True, hide_index=True)
