@@ -36,8 +36,9 @@ if df is not None:
         page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "📁 Structural Groups"])
         st.markdown("---")
         
-        # Department Filter
-        selected_depts = st.multiselect("Filter Departments:", df['Dept'].unique(), default=df['Dept'].unique())
+        # Sorted Department Filter
+        all_depts = sorted(df['Dept'].unique())
+        selected_depts = st.multiselect("Filter Departments:", all_depts, default=all_depts)
         search_q = st.text_input("Find Designation", placeholder="Search roles...")
 
     # Filter Logic
@@ -49,7 +50,7 @@ if df is not None:
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         
-        # Metrics
+        # Metrics - Headcount exactly as Integer
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
         c2.metric("Total Headcount", int(f_df['HC'].sum())) 
@@ -74,7 +75,7 @@ if df is not None:
             </div>
             """, unsafe_allow_html=True)
 
-    # 6. Analysis View - Fixed Indentation
+    # 6. Analysis View
     elif page == "📉 Market Analysis":
         st.title("Market Disparity by Structural Tier")
         tier_avg = f_df.groupby('Tier')['Variance %'].mean().reset_index()
@@ -85,7 +86,6 @@ if df is not None:
         st.divider()
         st.subheader("Avg. Variance by Department (%)")
         
-        # මෙන්න මේ පේළිය තමයි කලින් Error එක ආවේ:
         dept_avg = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
         
         fig2 = px.bar(dept_avg, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn')
