@@ -25,7 +25,8 @@ Financial Accountant,Finance,Professional Staff,1,5155,9250
 Financial Analyst,Finance,Professional Staff,1,8000,12000
 First Aid,HSE,Professional Staff,1,5745,5000
 Fitter,Mechanical,Technical Operations,4,3388,4100
-Foreman,Production,Technical Operations,1,2808,7500
+Foreman (Production),Production,Technical Operations,1,2808,7500
+Foreman (Mechanical),Mechanical,Technical Operations,1,4260,7500
 Forklift Operator,Mechanical,Technical Operations,2,2116,3000
 Gardener,Admin,Technical Operations,1,2000,1700
 General Helper,Admin,Technical Operations,1,1800,2000
