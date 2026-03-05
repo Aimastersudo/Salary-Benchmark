@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. Page Config
+# 1. Page Configuration
 st.set_page_config(page_title="Pioneer HR Intelligence", layout="wide")
 
-# 2. Premium Dark Styling
+# 2. Styling (Premium Dark Mode)
 st.markdown("""
     <style>
     .main { background-color: #0b0f19; color: #f8fafc; }
@@ -16,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Load Data from local CSV
+# 3. Dynamic Data Loader
 @st.cache_data
 def load_data():
     data = pd.read_csv("salary_data.csv")
@@ -25,34 +25,34 @@ def load_data():
 
 try:
     df = load_data()
-except Exception as e:
-    st.error(f"Error: Database file not found. Ensure 'salary_data.csv' is in your GitHub. Error details: {e}")
+except:
+    st.error("Missing Database: Ensure 'salary_data.csv' is in your repository.")
     st.stop()
 
-# 4. Sidebar Filters
+# 4. Sidebar Navigation & Global Filters
 with st.sidebar:
     st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PIONEER+AI", use_column_width=True)
-    page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "📁 Structural Groups"])
+    page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Disparity Analysis", "📁 Structural Groups"])
     st.markdown("---")
-    selected_depts = st.multiselect("Filter by Department:", df['Dept'].unique(), default=df['Dept'].unique())
-    search_q = st.text_input("Find Designation", placeholder="Search all 84 roles...")
+    selected_depts = st.multiselect("Department Filter:", df['Dept'].unique(), default=df['Dept'].unique())
+    search_q = st.text_input("Designation Search", placeholder="e.g. Engineer")
 
-# Filtering Logic
+# Filter logic
 f_df = df[df['Dept'].isin(selected_depts)]
 if search_q:
     f_df = f_df[f_df['Designation'].str.contains(search_q, case=False)]
 
 # 5. Executive Dashboard
 if page == "📊 Executive Dashboard":
-    st.title("Strategic Salary Benchmark Dashboard")
-    st.caption(f"Connected to Central Database | {len(f_df)} Designations Analysed")
+    st.title("Pioneer Cement Salary Intelligence")
+    st.caption(f"Analysis of {len(f_df)} Roles | Total Headcount: {int(f_df['HC'].sum())}")
     
     # Summary Metrics
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Designations", len(f_df))
-    c2.metric("Total Headcount", int(f_df['HC'].sum()))
+    c2.metric("Headcount", int(f_df['HC'].sum()))
     c3.metric("Avg. Market Gap", f"{f_df['Variance %'].mean():.0f}%", delta_color="inverse")
-    c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
+    c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
 
     # Data Matrix
     st.subheader("Interactive Salary Matrix (AED)")
@@ -66,28 +66,27 @@ if page == "📊 Executive Dashboard":
         st.markdown(f"""
         <div class="salary-card">
             <div class="ai-insight-box">
-                <b>Gemini HR Analysis:</b> The role of <b>{row['Designation']}</b> in <b>{row['Dept']}</b> 
-                is underpaid by <b>{abs(v)}%</b>. With <b>{row['HC']}</b> employees, this represents a significant risk.
+                <b>Gemini HR Verdict:</b> The <b>{row['Designation']}</b> role in <b>{row['Dept']}</b> 
+                (Headcount: {row['HC']}) is positioned <b>{abs(v)}%</b> {'below' if v < 0 else 'above'} market standards.
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-# 6. Analysis View
-elif page == "📉 Market Analysis":
-    st.title("Market Disparity Analysis")
-    
+# 6. Analysis Page
+elif page == "📉 Disparity Analysis":
+    st.title("Departmental Market Variance Analysis")
     dept_v = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
-    fig = px.bar(dept_v, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="Avg. Variance by Department (%)")
+    fig = px.bar(dept_v, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn')
     fig.update_layout(template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
     tier_v = f_df.groupby('Tier')['Variance %'].mean().reset_index()
-    fig2 = px.bar(tier_v, x='Tier', y='Variance %', color='Tier', title="Variance by Structural Tier (%)")
+    fig2 = px.bar(tier_v, x='Tier', y='Variance %', color='Tier')
     fig2.update_layout(template="plotly_dark", showlegend=False)
     st.plotly_chart(fig2, use_container_width=True)
 
-# 7. Structural Groups
+# 7. Groups Page
 elif page == "📁 Structural Groups":
     st.title("Organizational Tier Breakdown")
     t1, t2, t3 = st.tabs(["Leadership & Management", "Professional Staff", "Technical Operations"])
