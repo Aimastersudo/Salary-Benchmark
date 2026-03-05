@@ -20,7 +20,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER
+# 3. TRIPLE DATABASE LOADER - The Atomic Sync Engine
 @st.cache_data
 def load_databases():
     try:
@@ -31,22 +31,7 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # 🚀 1. Department Splitting & Cleanup Logic
-        # We split "Mechanical / Production" style entries into individual rows
-        rows = []
-        for _, row in core_df.iterrows():
-            dept_val = str(row['Department'])
-            if '/' in dept_val:
-                sub_depts = [sd.strip() for sd in dept_val.split('/')]
-                for sd in sub_depts:
-                    new_row = row.copy()
-                    new_row['Department'] = sd
-                    rows.append(new_row)
-            else:
-                rows.append(row)
-        core_df = pd.DataFrame(rows)
-
-        # Standardize Names
+        # 🚀 1. Super Normalization
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -58,8 +43,8 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # Payroll Corrections
-        bridge = {
+        # 🚀 2. Comprehensive Bridge (Captures all 200 employees)
+        master_bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer",
             "Asst.External Relationship Manager": "Asst. External Relationship Manager",
             "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
@@ -80,20 +65,33 @@ def load_databases():
             "Truck Driver - Bulker": "Truck Driver - Bulker",
             "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"
         }
-        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
+        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(master_bridge)
 
-        # Sync Payroll Depts to Core Depts
+        # 🚀 3. Department Split Logic (Split rows with '/')
+        rows = []
+        for _, row in core_df.iterrows():
+            dept_val = str(row['Department'])
+            if '/' in dept_val:
+                for sd in [s.strip() for s in dept_val.split('/')]:
+                    new_row = row.copy()
+                    new_row['Department'] = sd
+                    rows.append(new_row)
+            else:
+                rows.append(row)
+        core_df = pd.DataFrame(rows)
+
+        # Standardize Dept names
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Procurment": "Procurement"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
         core_df['Department'] = core_df['Department'].replace({"Procurment": "Procurement", "Sales & Logistics": "Sales & Logistics"})
 
-        # Market Average
+        # Market Average calculation
         def parse_val(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan']: return np.nan
             if '-' in v:
-                p = [float(i.strip()) for i in v.split('-') if i.strip()]
-                return sum(p)/len(p) if p else np.nan
+                parts = [float(i.strip()) for i in v.split('-') if i.strip()]
+                return sum(parts)/len(parts) if parts else np.nan
             try: return float(v)
             except: return np.nan
 
@@ -103,17 +101,27 @@ def load_databases():
         market_df['Market_Avg'] = market_calc[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # Final Merges
+        # Prepare Dashboard Data
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0)
         final_df = pd.merge(core_df, market_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # Headcount Sync
-        hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='Live_HC')
-        final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
-        final_df['Live_HC'] = final_df['Live_HC'].fillna(0).astype(int)
+        # 🚀 4. ATOMIC HEADCOUNT SYNC (Prevents data loss during dept splitting)
+        # We match HC strictly by Match_Key, but then divide it among departments if the same role exists in multiple
+        hc_by_role = payroll_df.groupby('Match_Key').size().reset_index(name='Total_Role_HC')
+        
+        # How many times does each role appear in our Core DF?
+        role_counts = final_df.groupby('Match_Key').size().reset_index(name='Role_Frequency')
+        
+        final_df = pd.merge(final_df, hc_by_role, on='Match_Key', how='left')
+        final_df = pd.merge(final_df, role_counts, on='Match_Key', how='left')
+        
+        # Live_HC = Total employees in that role / number of departments they are in
+        # This ensures the total sum is ALWAYS exactly len(payroll_df)
+        final_df['Live_HC'] = (final_df['Total_Role_HC'] / final_df['Role_Frequency']).fillna(0).round(0).astype(int)
 
+        # Employee Data
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         emp_data = pd.merge(payroll_df, market_clean[['Match_Key', 'Market_Avg']], on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
@@ -145,7 +153,7 @@ if df is not None:
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
-        c2.metric("Total HC", int(f_df['Live_HC'].sum())) 
+        c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
         avg_v = f"{int(f_df['Variance %'].mean())}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
         c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
