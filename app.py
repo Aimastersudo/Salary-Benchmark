@@ -16,27 +16,32 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. DUAL DATABASE LOADER - Live Sync
+# 3. DUAL DATABASE LOADER - Auto Fixing Hidden Spaces & Encoding
 @st.cache_data
 def load_databases():
     try:
-        # DB 1: Load Benchmark Data (Market limits, Categories, etc.)
-        bench_df = pd.read_csv("salary_data.csv")
+        # DB 1: Load Benchmark Data (utf-8-sig removes hidden Excel characters)
+        bench_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         
         # DB 2: Load Actuals Payroll Data
-        payroll_df = pd.read_csv("actuals_payroll.csv")
+        payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         
-        # Strip any accidental spaces from column names just in case
+        # 🚀 THE FIX: Clean hidden spaces from column names in BOTH files
+        bench_df.columns = bench_df.columns.str.strip()
         payroll_df.columns = payroll_df.columns.str.strip()
         
+        # Check if 'Designation' column exists after cleaning
+        if 'Designation' not in payroll_df.columns:
+            st.error("Error: 'Designation' column not found in actuals_payroll.csv. Please check the spelling in row 1.")
+            return None
+            
         # Calculate Dynamic Headcount from Payroll Data 
-        # (Counting occurrences of each Designation)
         hc_df = payroll_df.groupby('Designation').size().reset_index(name='Live_HC')
         
         # Merge the Live Headcount into the Benchmark Data
         merged_df = pd.merge(bench_df, hc_df, on='Designation', how='left')
         
-        # Fill missing values with 0 (if a role currently has no employees)
+        # Fill missing values with 0 
         merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
         
         # Calculate Market Variance %
@@ -44,7 +49,7 @@ def load_databases():
         
         return merged_df
     except Exception as e:
-        st.error(f"System Error: Please ensure BOTH 'salary_data.csv' and 'actuals_payroll.csv' are uploaded. Details: {e}")
+        st.error(f"System Error: {e}")
         return None
 
 df = load_databases()
@@ -57,14 +62,14 @@ if df is not None:
         st.markdown("---")
         
         # Sorted Department Filter
-        all_depts = sorted(df['Dept'].unique())
+        all_depts = sorted(df['Dept'].dropna().unique())
         selected_depts = st.multiselect("Filter Departments:", all_depts, default=all_depts)
         search_q = st.text_input("Find Designation", placeholder="Search roles...")
 
     # Filter Logic
     f_df = df[df['Dept'].isin(selected_depts)]
     if search_q:
-        f_df = f_df[f_df['Designation'].str.contains(search_q, case=False)]
+        f_df = f_df[f_df['Designation'].str.contains(search_q, case=False, na=False)]
 
     # 5. Dashboard View
     if page == "📊 Executive Dashboard":
@@ -75,7 +80,10 @@ if df is not None:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations Scoped", len(f_df))
         c2.metric("Live Headcount", int(f_df['Live_HC'].sum())) 
-        c3.metric("Avg. Market Gap", f"{f_df['Variance %'].mean():.0f}%", delta_color="inverse")
+        
+        # Handle division by zero or empty dataframe for Avg Variance
+        avg_variance = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty else "0%"
+        c3.metric("Avg. Market Gap", avg_variance, delta_color="inverse")
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
 
         # Data Table
@@ -92,7 +100,7 @@ if df is not None:
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Dept']} 
                     department is {abs(row['Variance %'])}% below market levels. With a current live headcount of <b>{row['Live_HC']}</b> (synced from payroll), 
-                    talent retention should be closely monitored.
+                    talent retention should be closely monitored by Management.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -108,7 +116,6 @@ if df is not None:
         st.divider()
         st.subheader("Avg. Variance by Department (%)")
         dept_avg = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
-        
         fig2 = px.bar(dept_avg, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn')
         fig2.update_layout(template="plotly_dark")
         st.plotly_chart(fig2, use_container_width=True)
