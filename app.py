@@ -32,7 +32,6 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # 🚀 1. Normalization & Dept Split
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -44,17 +43,6 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # Split Slash Departments
-        rows = []
-        for _, row in core_df.iterrows():
-            dv = str(row['Department'])
-            if '/' in dv:
-                for sd in [s.strip() for s in dv.split('/')]:
-                    nr = row.copy(); nr['Department'] = sd; rows.append(nr)
-            else: rows.append(row)
-        core_df = pd.DataFrame(rows)
-
-        # 🚀 2. Bridge & Dept Sync
         bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer",
             "Asst.External Relationship Manager": "Asst. External Relationship Manager",
@@ -78,11 +66,19 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
+        rows = []
+        for _, row in core_df.iterrows():
+            dv = str(row['Department'])
+            if '/' in dv:
+                for sd in [s.strip() for s in dv.split('/')]:
+                    nr = row.copy(); nr['Department'] = sd; rows.append(nr)
+            else: rows.append(row)
+        core_df = pd.DataFrame(rows)
+
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Stores Section": "Stores", "Procurement": "Procurment"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
         core_df['Department'] = core_df['Department'].replace({"Procurement": "Procurment"})
 
-        # 🚀 3. Market Calcs
         def parse_v(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan']: return np.nan
@@ -98,13 +94,11 @@ def load_databases():
         market_df['Market_Avg'] = market_calc[comp_cols].mean(axis=1).round(0)
         m_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # 🚀 4. Merging & HC Fix (200 HC)
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0)
         final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # HC Residual Allocation
         hc_d = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(final_df, hc_d, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_D'].fillna(0).astype(int)
@@ -119,7 +113,6 @@ def load_databases():
             idx = final_df[final_df['Match_Key'] == key].index
             if len(idx) > 0: final_df.at[idx[0], 'Live_HC'] += rem
 
-        # Emp Data
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         e_data = pd.merge(payroll_df, m_clean[['Match_Key', 'Market_Avg']], on='Match_Key', how='left')
         e_data['Market_Avg'] = e_data['Market_Avg'].fillna(e_data['Salary']).astype(int)
@@ -144,22 +137,24 @@ if df is not None:
         if l_path: st.image(l_path, use_container_width=True)
         else: st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PCI+HR", use_container_width=True)
         page = st.radio("MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employees", "📈 Increment Planner"])
+        st.markdown("---")
         depts = sorted(df['Department'].dropna().unique())
         sel_depts = st.multiselect("Filter Dept:", depts, default=depts)
 
     f_df = df[df['Department'].isin(sel_depts)]
     f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
+    # 📊 EXECUTIVE DASHBOARD
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         if "Truck Driver - Bulker" in f_df['Designation'].values:
-            st.markdown("""<div class="note-box"><b>📌 Note:</b> Bulker Driver earnings are trip-driven.</div>""", unsafe_allow_html=True)
-
+            st.markdown("""<div class="note-box"><b>📌 Note:</b> Bulker Driver salaries are trip-driven; basic pay differences are minimal.</div>""", unsafe_allow_html=True)
+        
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
-        c2.metric("Total HC", int(f_df['Live_HC'].sum())) 
+        c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
         c3.metric("Avg. Market Gap", f"{int(f_df['Variance %'].mean())}%" if not f_df.empty else "0%", delta_color="inverse")
-        c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
+        c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
         st.markdown("---")
@@ -167,7 +162,7 @@ if df is not None:
         sel_role = st.selectbox("Select Designation:", f_df['Designation'].unique())
         if sel_role:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Analysis:</b> Current pay for {row['Designation']} is {abs(row['Variance %'])}% {'below' if row['Variance %'] < 0 else 'above'} market avg.</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Analysis:</b> Current pay for {row['Designation']} is {abs(row['Variance %'])}% {'below' if row['Variance %'] < -2 else 'above' if row['Variance %'] > 2 else 'aligned with'} market average. Risk: {'High' if row['Variance %'] < -20 else 'Moderate'}.</div></div>""", unsafe_allow_html=True)
             cols = st.columns(len(comp_cols))
             for i, c in enumerate(comp_cols):
                 val = str(row.get(c, "nan"))
@@ -175,11 +170,54 @@ if df is not None:
                     if val in ['nan', '-', 'None']: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span class="outsource-text">Outsource</span></div>""", unsafe_allow_html=True)
                     else: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span class="value-text">{val}</span></div>""", unsafe_allow_html=True)
 
+    # 📉 MARKET ANALYSIS (UPDATED)
     elif page == "📉 Market Analysis":
-        st.title("📊 Market Disparity")
-        col1, col2 = st.columns(2)
-        with col1: st.plotly_chart(px.bar(f_df.groupby('Employee Type')['Variance %'].mean().reset_index(), x='Employee Type', y='Variance %', color='Employee Type', title="By Type (%)", template="plotly_dark"), use_container_width=True)
-        with col2: st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Department', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="By Dept (%)", template="plotly_dark"), use_container_width=True)
+        st.title("📊 Detailed Market Disparity Analysis")
+        
+        # 🚀 Gemini Strategic Insight for Market Page
+        avg_var = int(f_df['Variance %'].mean())
+        worst_dept = f_df.groupby('Department')['Variance %'].mean().idxmin()
+        critical_count = len(f_df[f_df['Variance %'] < -25])
+        
+        st.markdown(f"""
+        <div class="salary-card">
+            <div class="ai-insight-box">
+                <b>Gemini Market Intelligence:</b> Overall, Pioneer Cement is <b>{abs(avg_var)}%</b> behind market benchmarks. 
+                The <b>{worst_dept}</b> department shows the highest disparity, requiring urgent review. 
+                There are <b>{critical_count}</b> roles with over 25% gap, creating a high risk for talent poaching by competitors like JK Cement or Emirates Steel.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Charts Section
+        c1, c2 = st.columns(2)
+        with c1:
+            # Scatter Plot for Positioning
+            fig_pos = px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', 
+                                 hover_name='Designation', title="Salary Positioning Matrix (Bubble Size = HC)",
+                                 labels={'Market_Avg': 'Market Average (AED)', 'Your Salary (AED)': 'Pioneer Salary (AED)'})
+            fig_pos.add_shape(type='line', x0=0, y0=0, x1=max(f_df['Market_Avg']), y1=max(f_df['Market_Avg']), line=dict(color='white', dash='dash'))
+            fig_pos.update_layout(template="plotly_dark")
+            st.plotly_chart(fig_pos, use_container_width=True)
+        
+        with c2:
+            # Dept Variance Bar Chart
+            dept_v = f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %')
+            fig_dept = px.bar(dept_v, x='Variance %', y='Department', orientation='h', color='Variance %',
+                              color_continuous_scale='RdYlGn', title="Average Variance % by Department")
+            fig_dept.update_layout(template="plotly_dark")
+            st.plotly_chart(fig_dept, use_container_width=True)
+
+        st.divider()
+        
+        # Critical Gaps Table
+        st.subheader("⚠️ High-Risk Critical Salary Gaps")
+        st.caption("Roles where Pioneer salary is more than 20% below market average.")
+        crit_df = f_df[f_df['Variance %'] <= -20].sort_values('Variance %')
+        if not crit_df.empty:
+            st.dataframe(crit_df[['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
+        else:
+            st.success("No roles found with a critical gap (>20%) in the current selection.")
 
     elif page == "👥 PCI Employees":
         st.title("👥 Employees vs Market")
@@ -193,3 +231,10 @@ if df is not None:
             pct = st.number_input("Enter Increment %", 0.0, 100.0, 5.0, 0.5)
             new = int(data['Salary'] * (1 + pct/100))
             st.metric("New Salary", f"{new} AED", f"+{new - int(data['Salary'])}")
+            basic = int(new * 0.7); rem = new - basic
+            is_staff = "Staff" in str(data['Employee Type'])
+            food, other = (0, rem) if is_staff else (300, rem-300 if rem>300 else 0)
+            c1, c2, c3 = st.columns(3)
+            with c1: st.markdown(f"""<div class="market-box"><small>Basic</small><br><span class="value-text">{basic}</span></div>""", unsafe_allow_html=True)
+            with c2: st.markdown(f"""<div class="market-box"><small>Food</small><br><span class="value-text">{food}</span></div>""", unsafe_allow_html=True)
+            with c3: st.markdown(f"""<div class="market-box"><small>Other</small><br><span class="value-text">{other}</span></div>""", unsafe_allow_html=True)
