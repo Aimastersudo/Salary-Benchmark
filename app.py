@@ -17,24 +17,25 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER (Fixing Syntax & Indentation)
+# 3. TRIPLE DATABASE LOADER
 @st.cache_data
 def load_databases():
     try:
-        # Load DBs
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
 
-        # Clean spaces
-        for df in [core_df, payroll_df, market_df]:
-            df.columns = df.columns.str.strip()
+        # Clean column spaces
+        core_df.columns = core_df.columns.str.strip()
+        payroll_df.columns = payroll_df.columns.str.strip()
+        market_df.columns = market_df.columns.str.strip()
 
+        # Designations Cleaning
         core_df['Designation_Clean'] = core_df['Designation'].astype(str).str.strip().str.title()
         payroll_df['Designation_Clean'] = payroll_df['Designation'].astype(str).str.strip().str.title()
         market_df['Designation_Clean'] = market_df['Designation'].astype(str).str.strip().str.title()
 
-        # Name Corrector logic
+        # Name Corrector for Payroll/Market matching
         name_corrector = {
             "Marketing Co-Ordinator": "Marketing Coordinator", "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
             "Asst.Security Manager": "Asst. Security Manager", "Asst.Public Relation Offi": "Asst. Public Relation Officer",
@@ -51,93 +52,90 @@ def load_databases():
         payroll_df['Designation_Clean'] = payroll_df['Designation_Clean'].replace(name_corrector)
         market_df['Designation_Clean'] = market_df['Designation_Clean'].replace(name_corrector)
 
-        # Duplicate fix for Masons & HR
-        mason_market = market_df[market_df['Designation_Clean'] == 'Mason'].copy()
-        if not mason_market.empty:
-            m1, m2 = mason_market.copy(), mason_market.copy()
-            m1['Designation_Clean'], m2['Designation_Clean'] = 'Mason (Production)', 'Mason (Mechanical)'
-            market_df = pd.concat([market_df, m1, m2], ignore_index=True)
-
-        # Core/Payroll separation
+        # Mason/HR separation based on Department
         core_df.loc[(core_df['Designation_Clean'] == 'Mason') & (core_df['Department'].str.contains('Production', na=False, case=False)), 'Designation_Clean'] = 'Mason (Production)'
         core_df.loc[(core_df['Designation_Clean'] == 'Mason') & (core_df['Department'].str.contains('Mechanical', na=False, case=False)), 'Designation_Clean'] = 'Mason (Mechanical)'
         payroll_df.loc[(payroll_df['Designation_Clean'] == 'Mason') & (payroll_df['Department'].str.contains('Production', na=False, case=False)), 'Designation_Clean'] = 'Mason (Production)'
         payroll_df.loc[(payroll_df['Designation_Clean'] == 'Mason') & (payroll_df['Department'].str.contains('Mechanical', na=False, case=False)), 'Designation_Clean'] = 'Mason (Mechanical)'
+        
+        core_df.loc[(core_df['Designation_Clean'] == 'Hr Executive') & (core_df['Department'].str.contains('External', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (External)'
+        core_df.loc[(core_df['Designation_Clean'] == 'Hr Executive') & (core_df['Department'].str.contains('HR', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (Internal)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('External', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (External)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('HR', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (Internal)'
 
-        hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
-
-        # Market Average Calculation
+        # Market Salary Parsing
         def parse_salary(val):
             val = str(val).replace(',', '').replace('AED', '').strip()
-            if val in ['-', '', 'nan']: return np.nan
+            if val in ['-', '', 'nan', 'None']: return np.nan
             if '-' in val:
                 p = [float(i.strip()) for i in val.split('-') if i.strip()]
                 return sum(p)/len(p) if p else np.nan
             try: return float(val)
             except: return np.nan
 
-        ignore = ['#', 'Designation', 'Designation_Clean']
-        comp_cols = [c for c in market_df.columns if c not in ignore]
+        comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Designation_Clean']]
         market_calc = market_df.copy()
         for c in comp_cols: market_calc[c] = market_calc[c].apply(parse_salary)
-            
         market_df['Calculated Market Salary'] = market_calc[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Designation_Clean', 'Calculated Market Salary'] + comp_cols].dropna(subset=['Calculated Market Salary']).drop_duplicates(subset=['Designation_Clean'])
 
-        # Final Merging
-        merged_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
-        merged_df = pd.merge(merged_df, market_clean, on='Designation_Clean', how='left')
+        # Prepare Core Data
+        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
+        
+        # Prepare Payroll Data (Standardize Actual Salary)
+        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').str.strip().astype(float)
 
-        merged_df['Your Salary (AED)'] = merged_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
-        merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
-        merged_df['Calculated Market Salary'] = merged_df['Calculated Market Salary'].fillna(merged_df['Your Salary (AED)'])
-        merged_df['Variance %'] = ((merged_df['Your Salary (AED)'] - merged_df['Calculated Market Salary']) / merged_df['Calculated Market Salary'] * 100).round(0).astype(int)
+        # Merge for Headcount (Core Level)
+        hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
+        final_core_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
+        final_core_df = pd.merge(final_core_df, market_clean, on='Designation_Clean', how='left')
+        final_core_df['Live_HC'] = final_core_df['Live_HC'].fillna(0).astype(int)
+        final_core_df['Calculated Market Salary'] = final_core_df['Calculated Market Salary'].fillna(final_core_df['Your Salary (AED)'])
+        final_core_df['Variance %'] = ((final_core_df['Your Salary (AED)'] - final_core_df['Calculated Market Salary']) / final_core_df['Calculated Market Salary'] * 100).round(0).astype(int)
 
-        return merged_df, comp_cols
+        # Merge for Employee Page
+        emp_market_df = pd.merge(payroll_df, market_clean[['Designation_Clean', 'Calculated Market Salary']], on='Designation_Clean', how='left')
+        emp_market_df['Calculated Market Salary'] = emp_market_df['Calculated Market Salary'].fillna(emp_market_df['Salary']) # Fallback
+        emp_market_df['Gap (AED)'] = (emp_market_df['Salary'] - emp_market_df['Calculated Market Salary']).astype(int)
+        emp_market_df['Gap %'] = ((emp_market_df['Salary'] - emp_market_df['Calculated Market Salary']) / emp_market_df['Calculated Market Salary'] * 100).round(1)
+
+        return final_core_df, emp_market_df, comp_cols
     except Exception as e:
         st.error(f"System Error: {e}")
-        return None, None
+        return None, None, None
 
-df, competitor_columns = load_databases()
+df, emp_df, competitor_columns = load_databases()
 
 if df is not None:
-    # 4. Sidebar Filters
     with st.sidebar:
         st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PIONEER+AI", use_column_width=True)
-        page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "📁 Structural Groups"])
+        page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employee Analysis", "📁 Structural Groups"])
         st.markdown("---")
         depts = sorted(df['Department'].dropna().unique())
         selected_depts = st.multiselect("Filter Departments:", depts, default=depts)
-        search_q = st.text_input("Find Designation", placeholder="Search roles...")
-
-    f_df = df[df['Department'].isin(selected_depts)]
-    if search_q: f_df = f_df[f_df['Designation'].str.contains(search_q, case=False, na=False)]
 
     # -------------------------------------------------------------
     # 📊 EXECUTIVE DASHBOARD
     # -------------------------------------------------------------
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
-        st.caption("🟢 Live 3-Pillar Architecture Sync")
+        f_df = df[df['Department'].isin(selected_depts)]
         
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Designations Scoped", len(f_df))
-        c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
+        c1.metric("Designations", len(f_df))
+        c2.metric("Total HC", int(f_df['Live_HC'].sum())) 
         avg_v = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
-        c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
+        c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
 
-        st.subheader("Interactive Salary Matrix (AED)")
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Calculated Market Salary', 'Variance %']], use_container_width=True, hide_index=True)
-
+        
         st.markdown("---")
         st.subheader("🔍 Deep-Dive Market Analysis")
-        selected_role = st.selectbox("Select a Designation for Competitor Breakdown:", f_df['Designation'].unique())
-        
-        if selected_role:
-            row = f_df[f_df['Designation'] == selected_role].iloc[0]
-            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>HR Insight:</b> {row['Designation']} is {abs(row['Variance %'])}% below market average.</div></div>""", unsafe_allow_html=True)
-            
+        sel_role = st.selectbox("Select Designation for Competitor Breakdown:", f_df['Designation'].unique())
+        if sel_role:
+            row = f_df[f_df['Designation'] == sel_role].iloc[0]
+            st.markdown(f"#### Market Breakdown for {row['Designation']}")
             cols = st.columns(len(competitor_columns))
             for i, comp in enumerate(competitor_columns):
                 val = str(row[comp])
@@ -149,30 +147,56 @@ if df is not None:
     # -------------------------------------------------------------
     elif page == "📉 Market Analysis":
         st.title("📊 In-Depth Market Disparity Analysis")
+        f_df = df[df['Department'].isin(selected_depts)]
         
         col1, col2 = st.columns(2)
         with col1:
-            tier_fig = px.bar(f_df.groupby('Employee Type')['Variance %'].mean().reset_index(), x='Employee Type', y='Variance %', color='Employee Type', title="Variance by Employee Type (%)")
-            tier_fig.update_layout(template="plotly_dark", showlegend=False)
-            st.plotly_chart(tier_fig, use_container_width=True)
+            st.plotly_chart(px.bar(f_df.groupby('Employee Type')['Variance %'].mean().reset_index(), x='Employee Type', y='Variance %', color='Employee Type', title="Variance by Type (%)", template="plotly_dark"), use_container_width=True)
         with col2:
-            dept_fig = px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Department', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Department (%)")
-            dept_fig.update_layout(template="plotly_dark")
-            st.plotly_chart(dept_fig, use_container_width=True)
+            st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Department', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept (%)", template="plotly_dark"), use_container_width=True)
 
         st.divider()
         st.subheader("⚠️ Top 10 Critical Salary Gaps")
         gap_df = f_df[f_df['Variance %'] < 0].sort_values('Variance %').head(10)
         if not gap_df.empty:
-            fig_gap = px.bar(gap_df.melt(id_vars=['Designation'], value_vars=['Your Salary (AED)', 'Calculated Market Salary']), x='Designation', y='value', color='variable', barmode='group', title="Pioneer vs Market (Top 10 Critical)")
-            fig_gap.update_layout(template="plotly_dark", xaxis_tickangle=-45)
-            st.plotly_chart(fig_gap, use_container_width=True)
+            st.plotly_chart(px.bar(gap_df.melt(id_vars=['Designation'], value_vars=['Your Salary (AED)', 'Calculated Market Salary']), x='Designation', y='value', color='variable', barmode='group', title="Pioneer vs Market", template="plotly_dark"), use_container_width=True)
+
+    # -------------------------------------------------------------
+    # 👥 PCI EMPLOYEE ANALYSIS (NEW PAGE)
+    # -------------------------------------------------------------
+    elif page == "👥 PCI Employee Analysis":
+        st.title("👥 PCI Employees: Actual Salary vs Market")
+        st.caption("Detailed breakdown of individual employee salaries compared to calculated market benchmarks.")
+        
+        # Filtering
+        f_emp = emp_df[emp_df['Department'].isin(selected_depts)]
+        search_emp = st.text_input("Search Employee Name or Designation:", "")
+        if search_emp:
+            f_emp = f_emp[f_emp['Employee Name'].str.contains(search_emp, case=False) | f_emp['Designation'].str.contains(search_emp, case=False)]
+
+        # Summary Metrics for Employees
+        e1, e2, e3 = st.columns(3)
+        e1.metric("Selected Employees", len(f_emp))
+        e2.metric("Under Market Avg.", len(f_emp[f_emp['Gap (AED)'] < 0]))
+        e3.metric("Avg. Gap per Employee", f"{int(f_emp['Gap (AED)'].mean())} AED")
+
+        # Employee Table
+        st.markdown("---")
+        display_emp_cols = ['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Calculated Market Salary', 'Gap (AED)', 'Gap %']
+        
+        # Color formatting for the table
+        def color_gap(val):
+            color = '#ef4444' if val < 0 else '#22c55e'
+            return f'color: {color}'
+
+        st.dataframe(f_emp[display_emp_cols].style.applymap(color_gap, subset=['Gap (AED)', 'Gap %']), use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------
     # 📁 STRUCTURAL GROUPS
     # -------------------------------------------------------------
     elif page == "📁 Structural Groups":
         st.title("Organizational Tier Breakdown")
+        f_df = df[df['Department'].isin(selected_depts)]
         emp_types = df['Employee Type'].dropna().unique().tolist()
         if emp_types:
             tabs = st.tabs(emp_types)
