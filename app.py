@@ -32,7 +32,6 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # Master Normalization
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -44,7 +43,6 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # Bridge
         bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer",
             "Asst.External Relationship Manager": "Asst. External Relationship Manager",
@@ -68,7 +66,6 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # Dept Splitting
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -81,11 +78,9 @@ def load_databases():
                 rows.append(row)
         core_df = pd.DataFrame(rows)
 
-        # Dept Standardization
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Procurement": "Procurment"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
 
-        # Market Average calculation
         def parse_val(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan']: return np.nan
@@ -101,13 +96,11 @@ def load_databases():
         market_df['Market_Avg'] = market_calc[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # Final Dashboard Prep
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0)
         final_df = pd.merge(core_df, market_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # Residual Allocation Headcount Sync (Ensures exactly 200)
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_Dept')
         final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_Dept'].fillna(0).astype(int)
@@ -124,7 +117,6 @@ def load_databases():
             if len(idx_list) > 0:
                 final_df.at[idx_list[0], 'Live_HC'] += rem
 
-        # Employee Data Prep
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         emp_data = pd.merge(payroll_df, market_clean[['Match_Key', 'Market_Avg']], on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
@@ -141,20 +133,9 @@ def load_databases():
 df, emp_df, comp_columns = load_databases()
 
 if df is not None:
-    # 4. SIDEBAR WITH LOGO HANDLING
     with st.sidebar:
-        # Search for logo in multiple formats
-        logo_path = None
-        for ext in ["png", "jpg", "jpeg"]:
-            if os.path.exists(f"PCI_Logo.{ext}"):
-                logo_path = f"PCI_Logo.{ext}"
-                break
-        
-        if logo_path:
-            st.image(logo_path, use_container_width=True)
-        else:
-            st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PCI+HR+AI", use_container_width=True)
-            
+        if os.path.exists("PCI_Logo.jpg"): st.image("PCI_Logo.jpg", use_container_width=True)
+        elif os.path.exists("PCI_Logo.png"): st.image("PCI_Logo.png", use_container_width=True)
         page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employees", "📈 Increment Planner"])
         st.markdown("---")
         depts = sorted(df['Department'].dropna().unique())
@@ -177,13 +158,28 @@ if df is not None:
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
-        # 🔍 DEEP-DIVE SECTION
+        # 🚀 🚀 DEEP-DIVE SECTION WITH GEMINI NOTE 🚀 🚀
         st.markdown("---")
         st.subheader("🔍 Deep-Dive Market Analysis")
-        sel_role = st.selectbox("Select Designation:", f_df['Designation'].unique())
+        sel_role = st.selectbox("Select a Designation to view detailed analysis:", f_df['Designation'].unique())
+        
         if sel_role:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.markdown(f"#### Market Breakdown for {row['Designation']}")
+            
+            # Gemini AI Insight Box
+            st.markdown(f"""
+            <div class="salary-card">
+                <div class="ai-insight-box">
+                    <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Department']} 
+                    department is {abs(row['Variance %'])}% {'below' if row['Variance %'] < 0 else 'above'} market average ({row['Market_Avg']} AED). 
+                    With a live headcount of <b>{row['Live_HC']}</b>, talent retention risk is 
+                    {'High' if row['Variance %'] < -20 else 'Low' if row['Variance %'] > 0 else 'Moderate'}.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Competitor Boxes
+            st.markdown(f"#### Market Salary Breakdown (Competitors)")
             cols = st.columns(len(comp_columns))
             for i, comp in enumerate(comp_columns):
                 val = str(row.get(comp, "nan"))
@@ -211,11 +207,3 @@ if df is not None:
             pct = st.number_input("Enter Increment %", 0.0, 100.0, 5.0, 0.5)
             new = int(data['Salary'] * (1 + pct/100))
             st.metric("New Salary", f"{new} AED", f"+{new - int(data['Salary'])}")
-            
-            basic = int(new * 0.7); rem = new - basic
-            is_staff = "Staff" in str(data['Employee Type'])
-            food, other = (0, rem) if is_staff else (300, rem-300 if rem>300 else 0)
-            c1, c2, c3 = st.columns(3)
-            with c1: st.markdown(f"""<div class="market-box"><small>Basic</small><br><span class="value-text">{basic}</span></div>""", unsafe_allow_html=True)
-            with c2: st.markdown(f"""<div class="market-box"><small>Food</small><br><span class="value-text">{food}</span></div>""", unsafe_allow_html=True)
-            with c3: st.markdown(f"""<div class="market-box"><small>Other</small><br><span class="value-text">{other}</span></div>""", unsafe_allow_html=True)
