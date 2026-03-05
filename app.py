@@ -49,10 +49,10 @@ if df is not None:
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         
-        # Metrics with 200 Headcount Fix
+        # Metrics
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
-        c2.metric("Total Headcount", int(f_df['HC'].sum())) # 200 පෙන්වන්නේ මෙතනින්
+        c2.metric("Total Headcount", int(f_df['HC'].sum())) 
         c3.metric("Avg. Market Gap", f"{f_df['Variance %'].mean():.0f}%", delta_color="inverse")
         c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
 
@@ -68,13 +68,13 @@ if df is not None:
             <div class="salary-card">
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Dept']} 
-                    department is {abs(row['Variance %'])}% below market. With a headcount of {row['HC']}, 
-                    talent retention is a priority.
+                    department is {abs(row['Variance %'])}% below market levels. With a headcount of {row['HC']}, 
+                    talent retention should be prioritized.
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-    # 6. Analysis View
+    # 6. Analysis View - Fixed Indentation
     elif page == "📉 Market Analysis":
         st.title("Market Disparity by Structural Tier")
         tier_avg = f_df.groupby('Tier')['Variance %'].mean().reset_index()
@@ -84,7 +84,10 @@ if df is not None:
 
         st.divider()
         st.subheader("Avg. Variance by Department (%)")
-                dept_avg = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
+        
+        # මෙන්න මේ පේළිය තමයි කලින් Error එක ආවේ:
+        dept_avg = f_df.groupby('Dept')['Variance %'].mean().reset_index().sort_values('Variance %')
+        
         fig2 = px.bar(dept_avg, x='Dept', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn')
         fig2.update_layout(template="plotly_dark")
         st.plotly_chart(fig2, use_container_width=True)
