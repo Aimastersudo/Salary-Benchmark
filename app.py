@@ -11,9 +11,9 @@ st.markdown("""
     .main { background-color: #0b0f19; color: #f8fafc; }
     [data-testid="stSidebar"] { background-color: #111827; border-right: 1px solid #1f2937; }
     .stMetric { background-color: #1f2937; padding: 20px; border-radius: 15px; border: 1px solid #374151; }
-    .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; }
+    .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
     .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 15px; border-radius: 10px; color: #93c5fd; }
-    .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; }
+    .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -86,7 +86,6 @@ def load_databases():
 
         hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
 
-        # Market Salary Parsing
         def parse_salary_range(val):
             val = str(val).replace(',', '').replace('AED', '').strip()
             if val == '-' or val == '' or str(val).lower() == 'nan': return np.nan
@@ -99,7 +98,6 @@ def load_databases():
         ignore_cols = ['#', 'Designation', 'Designation_Clean']
         comp_cols = [c for c in market_df.columns if c not in ignore_cols]
         
-        # 🚀 We use a copy to calculate average, so we can keep the original strings for display
         market_calc = market_df.copy()
         for c in comp_cols:
             market_calc[c] = market_calc[c].apply(parse_salary_range)
@@ -148,11 +146,19 @@ if df is not None:
 
         display_cols = ['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Calculated Market Salary', 'Variance %']
         st.subheader("Interactive Salary Matrix (AED)")
-        event = st.dataframe(f_df[display_cols], use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
+        
+        # Display simple dataframe (always works on any Streamlit version)
+        st.dataframe(f_df[display_cols], use_container_width=True, hide_index=True)
 
-        # 🚀 Display Market Breakdown when a row is clicked
-        if len(event.selection.rows) > 0:
-            row = f_df.iloc[event.selection.rows[0]]
+        st.markdown("---")
+        st.subheader("🔍 Deep-Dive Market Analysis")
+        
+        # Dropdown to select designation for deep dive
+        selected_role = st.selectbox("Select a Designation to view competitor breakdown:", f_df['Designation'].unique())
+        
+        if selected_role:
+            row = f_df[f_df['Designation'] == selected_role].iloc[0]
+            
             st.markdown(f"### 📋 Strategic Analysis: {row['Designation']}")
             
             st.markdown(f"""
@@ -160,25 +166,24 @@ if df is not None:
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Department']} 
                     department is {abs(row['Variance %'])}% below market average ({row['Calculated Market Salary']} AED). With a current live headcount of <b>{row['Live_HC']}</b> (synced from payroll), 
-                    talent retention should be monitored.
+                    talent retention should be monitored closely.
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("#### 🌍 Market Salary Breakdown")
+            st.markdown("#### 🌍 Market Salary Breakdown (Competitors)")
             st.caption("How the Calculated Market Salary was derived from competitors:")
             
-            # Show competitor breakdown dynamically
             cols = st.columns(len(competitor_columns))
             for i, comp in enumerate(competitor_columns):
                 val = str(row[comp])
                 if val == 'nan' or val.strip() == '-' or val == '':
-                    val = "N/A"
+                    val = "Data N/A"
                 with cols[i]:
                     st.markdown(f"""
                     <div class="market-box">
-                        <small style="color:#94a3b8;">{comp}</small><br>
-                        <b style="color:#38bdf8;">{val}</b>
+                        <small style="color:#94a3b8; font-weight:bold;">{comp}</small><br>
+                        <b style="color:#38bdf8; font-size: 18px;">{val}</b>
                     </div>
                     """, unsafe_allow_html=True)
 
