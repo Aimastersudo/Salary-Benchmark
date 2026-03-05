@@ -16,31 +16,30 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. DUAL DATABASE LOADER - Auto Fixing Hidden Spaces
+# 3. DUAL DATABASE LOADER - Live Headcount Sync from Actuals
 @st.cache_data
 def load_databases():
     try:
-        # DB 1: Load Benchmark Data 
+        # DB 1: Benchmark Data Load
         bench_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         
-        # DB 2: Load Actuals Payroll Data (The one you just uploaded)
+        # DB 2: Actuals Payroll Data Load (The newly uploaded file)
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         
-        # 🚀 FIX 1: Clean hidden spaces from Column Names
+        # 🚀 Data Cleaning: Remove hidden spaces to ensure 100% matching
         bench_df.columns = bench_df.columns.str.strip()
         payroll_df.columns = payroll_df.columns.str.strip()
         
-        # 🚀 FIX 2: Clean hidden spaces from the actual Designation Names
-        bench_df['Designation'] = bench_df['Designation'].astype(str).str.strip()
-        payroll_df['Designation'] = payroll_df['Designation'].astype(str).str.strip()
+        bench_df['Designation'] = bench_df['Designation'].astype(str).str.strip().str.title()
+        payroll_df['Designation'] = payroll_df['Designation'].astype(str).str.strip().str.title()
             
-        # Calculate Dynamic Headcount from Payroll Data 
+        # 🚀 EXTRACT HEADCOUNT FROM ACTUALS: Count the number of people in each designation
         hc_df = payroll_df.groupby('Designation').size().reset_index(name='Live_HC')
         
-        # Merge the Live Headcount into the Benchmark Data
+        # Merge the Actual Headcount into the Benchmark Data
         merged_df = pd.merge(bench_df, hc_df, on='Designation', how='left')
         
-        # Fill missing values with 0 
+        # If a designation has no current employees, fill with 0
         merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
         
         # Calculate Market Variance %
@@ -73,12 +72,12 @@ if df is not None:
     # 5. Dashboard View
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
-        st.caption("🟢 Live Headcount Synced with Actuals Payroll")
+        st.caption("🟢 Live Headcount Synchronized Directly from Actuals Payroll")
         
-        # Metrics - Using dynamic 'Live_HC'
+        # Metrics - Live HC Calculated Directly from f_df['Live_HC']
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations Scoped", len(f_df))
-        c2.metric("Live Headcount", int(f_df['Live_HC'].sum())) 
+        c2.metric("Live Headcount", int(f_df['Live_HC'].sum())) # <--- මෙතනින් තමයි Live Headcount එක එන්නේ
         
         avg_variance = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_variance, delta_color="inverse")
@@ -97,7 +96,7 @@ if df is not None:
             <div class="salary-card">
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Dept']} 
-                    department is {abs(row['Variance %'])}% below market levels. With a current live headcount of <b>{row['Live_HC']}</b> (synced from payroll), 
+                    department is {abs(row['Variance %'])}% below market levels. With a current live headcount of <b>{row['Live_HC']}</b> (synced from actuals payroll), 
                     talent retention should be closely monitored by Management.
                 </div>
             </div>
