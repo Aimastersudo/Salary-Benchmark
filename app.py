@@ -24,7 +24,7 @@ def load_databases():
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         # DB 2: Actuals Payroll
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
-        # DB 3: External Market Benchmarks
+        # DB 3: External Market Benchmarks (Updated without Pioneer column)
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
 
         # Clean column spaces
@@ -35,13 +35,6 @@ def load_databases():
         core_df['Designation_Clean'] = core_df['Designation'].astype(str).str.strip().str.title()
         payroll_df['Designation_Clean'] = payroll_df['Designation'].astype(str).str.strip().str.title()
         market_df['Designation_Clean'] = market_df['Designation'].astype(str).str.strip().str.title()
-
-        # Alert if Actuals don't match Core Data
-        payroll_desigs = set(payroll_df['Designation_Clean'].unique())
-        core_desigs = set(core_df['Designation_Clean'].unique())
-        unmatched = payroll_desigs - core_desigs
-        if unmatched:
-            st.error(f"⚠️ Warning: The following Designations in your Payroll CSV do not match the Core Data CSV: {', '.join(unmatched)}")
 
         # Step 1: Headcount Calculation
         hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
@@ -56,8 +49,8 @@ def load_databases():
             try: return float(val)
             except: return np.nan
 
-        # Ignore non-competitor columns
-        ignore_cols = ['#', 'Designation', 'Pioneer Cement', 'Designation_Clean']
+        # Dynamically ignore ID and Designation columns
+        ignore_cols = ['#', 'Designation', 'Designation_Clean']
         comp_cols = [c for c in market_df.columns if c not in ignore_cols]
         
         # Parse ranges and calculate average for competitors
@@ -77,7 +70,7 @@ def load_databases():
         # Fill NAs
         merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
         
-        # If Market Salary is missing for a role, default it to Pioneer salary
+        # If Market Salary is missing for a role, default it to Pioneer salary to avoid graph errors
         merged_df['Calculated Market Salary'] = merged_df['Calculated Market Salary'].fillna(merged_df['Your Salary (AED)'])
         
         # Variance calculation
