@@ -20,7 +20,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER - The Atomic Sync Engine
+# 3. TRIPLE DATABASE LOADER - The Final 200 HC "Residual Allocation" Sync
 @st.cache_data
 def load_databases():
     try:
@@ -31,7 +31,7 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # 🚀 1. Super Normalization
+        # 🚀 1. Normalization
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -43,8 +43,8 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # 🚀 2. Comprehensive Bridge (Captures all 200 employees)
-        master_bridge = {
+        # 🚀 2. Bridge (Matches payroll designation errors)
+        bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer",
             "Asst.External Relationship Manager": "Asst. External Relationship Manager",
             "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
@@ -65,9 +65,9 @@ def load_databases():
             "Truck Driver - Bulker": "Truck Driver - Bulker",
             "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"
         }
-        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(master_bridge)
+        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # 🚀 3. Department Split Logic (Split rows with '/')
+        # 🚀 3. Department Cleanup & Splitting
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -80,18 +80,18 @@ def load_databases():
                 rows.append(row)
         core_df = pd.DataFrame(rows)
 
-        # Standardize Dept names
-        dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Procurment": "Procurement"}
+        # Dept standardization for Sync
+        dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Procurement": "Procurment"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
-        core_df['Department'] = core_df['Department'].replace({"Procurment": "Procurement", "Sales & Logistics": "Sales & Logistics"})
+        # Note: core_df already uses "Procurment" and "Sales & Logistics"
 
-        # Market Average calculation
+        # Market Calculation
         def parse_val(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan']: return np.nan
             if '-' in v:
-                parts = [float(i.strip()) for i in v.split('-') if i.strip()]
-                return sum(parts)/len(parts) if parts else np.nan
+                p = [float(i.strip()) for i in v.split('-') if i.strip()]
+                return sum(p)/len(p) if p else np.nan
             try: return float(v)
             except: return np.nan
 
@@ -101,32 +101,41 @@ def load_databases():
         market_df['Market_Avg'] = market_calc[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # Prepare Dashboard Data
+        # Final Dashboard Prep
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0)
         final_df = pd.merge(core_df, market_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # 🚀 4. ATOMIC HEADCOUNT SYNC (Prevents data loss during dept splitting)
-        # We match HC strictly by Match_Key, but then divide it among departments if the same role exists in multiple
-        hc_by_role = payroll_df.groupby('Match_Key').size().reset_index(name='Total_Role_HC')
-        
-        # How many times does each role appear in our Core DF?
-        role_counts = final_df.groupby('Match_Key').size().reset_index(name='Role_Frequency')
-        
-        final_df = pd.merge(final_df, hc_by_role, on='Match_Key', how='left')
-        final_df = pd.merge(final_df, role_counts, on='Match_Key', how='left')
-        
-        # Live_HC = Total employees in that role / number of departments they are in
-        # This ensures the total sum is ALWAYS exactly len(payroll_df)
-        final_df['Live_HC'] = (final_df['Total_Role_HC'] / final_df['Role_Frequency']).fillna(0).round(0).astype(int)
+        # 🚀 4. ROBUST HEADCOUNT SYNC (The Residual Allocation Fix)
+        # Step A: Match by Key + Department
+        hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_Dept')
+        final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
+        final_df['Live_HC'] = final_df['HC_Dept'].fillna(0).astype(int)
 
-        # Employee Data
+        # Step B: Identify and distribute residual counts (where Dept didn't match)
+        allocated_per_key = final_df.groupby('Match_Key')['Live_HC'].sum().reset_index(name='Allocated')
+        actual_per_key = payroll_df.groupby('Match_Key').size().reset_index(name='Actual')
+        comparison = pd.merge(actual_per_key, allocated_per_key, on='Match_Key', how='left')
+        comparison['Allocated'] = comparison['Allocated'].fillna(0)
+        residuals = comparison[comparison['Actual'] > comparison['Allocated']]
+
+        for _, res_row in residuals.iterrows():
+            key = res_row['Match_Key']
+            rem = int(res_row['Actual'] - res_row['Allocated'])
+            # Add to the first instance of this role in the list
+            idx_list = final_df[final_df['Match_Key'] == key].index
+            if len(idx_list) > 0:
+                final_df.at[idx_list[0], 'Live_HC'] += rem
+
+        # Employee Page Data
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         emp_data = pd.merge(payroll_df, market_clean[['Match_Key', 'Market_Avg']], on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
         emp_data['Gap (AED)'] = (emp_data['Salary'] - emp_data['Market_Avg']).astype(int)
         emp_data['Gap %'] = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'] * 100).round(0).astype(int)
+        type_map = dict(zip(core_df['Match_Key'], core_df['Employee Type']))
+        emp_data['Employee Type'] = emp_data['Match_Key'].map(type_map).fillna("Worker")
 
         return final_df, emp_data, comp_cols
     except Exception as e:
