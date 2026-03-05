@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import os
 
 # 1. Page Configuration
 st.set_page_config(page_title="Pioneer HR | Salary Intelligence", layout="wide")
@@ -31,7 +32,7 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # 🚀 1. Normalization
+        # Normalization
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -43,7 +44,7 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # 🚀 2. Bridge (Matches payroll designation errors)
+        # Bridge
         bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer",
             "Asst.External Relationship Manager": "Asst. External Relationship Manager",
@@ -67,7 +68,7 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # 🚀 3. Department Cleanup & Splitting
+        # Department Splitting
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -80,12 +81,11 @@ def load_databases():
                 rows.append(row)
         core_df = pd.DataFrame(rows)
 
-        # Dept standardization for Sync
+        # Dept Standardization
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Procurement": "Procurment"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
-        # Note: core_df already uses "Procurment" and "Sales & Logistics"
 
-        # Market Calculation
+        # Market Average calculation
         def parse_val(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan']: return np.nan
@@ -107,28 +107,24 @@ def load_databases():
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # 🚀 4. ROBUST HEADCOUNT SYNC (The Residual Allocation Fix)
-        # Step A: Match by Key + Department
+        # Robust Headcount Sync (Residual Allocation)
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_Dept')
         final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_Dept'].fillna(0).astype(int)
 
-        # Step B: Identify and distribute residual counts (where Dept didn't match)
         allocated_per_key = final_df.groupby('Match_Key')['Live_HC'].sum().reset_index(name='Allocated')
         actual_per_key = payroll_df.groupby('Match_Key').size().reset_index(name='Actual')
         comparison = pd.merge(actual_per_key, allocated_per_key, on='Match_Key', how='left')
-        comparison['Allocated'] = comparison['Allocated'].fillna(0)
-        residuals = comparison[comparison['Actual'] > comparison['Allocated']]
+        residuals = comparison[comparison['Actual'] > comparison['Allocated'].fillna(0)]
 
         for _, res_row in residuals.iterrows():
             key = res_row['Match_Key']
             rem = int(res_row['Actual'] - res_row['Allocated'])
-            # Add to the first instance of this role in the list
             idx_list = final_df[final_df['Match_Key'] == key].index
             if len(idx_list) > 0:
                 final_df.at[idx_list[0], 'Live_HC'] += rem
 
-        # Employee Page Data
+        # Employee Data Prep
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         emp_data = pd.merge(payroll_df, market_clean[['Match_Key', 'Market_Avg']], on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
@@ -145,9 +141,16 @@ def load_databases():
 df, emp_df, comp_columns = load_databases()
 
 if df is not None:
+    # 4. SIDEBAR WITH LOGO
     with st.sidebar:
-        st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PIONEER+AI", use_column_width=True)
-        page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employee Analysis", "📈 Increment Planner"])
+        # Check if PCI_Logo.png exists, if not use a generic placeholder
+        if os.path.exists("PCI_Logo.png"):
+            st.image("PCI_Logo.png", use_container_width=True)
+        else:
+            st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PCI+HR+AI", use_container_width=True)
+            
+        page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employees", "📈 Increment Planner"])
+        st.markdown("---")
         depts = sorted(df['Department'].dropna().unique())
         sel_depts = st.multiselect("Filter Dept:", depts, default=depts)
 
@@ -165,7 +168,7 @@ if df is not None:
         c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
         avg_v = f"{int(f_df['Variance %'].mean())}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
-        c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
+        c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
         st.markdown("---")
@@ -188,7 +191,7 @@ if df is not None:
         with col1: st.plotly_chart(px.bar(f_df.groupby('Employee Type')['Variance %'].mean().reset_index(), x='Employee Type', y='Variance %', color='Employee Type', title="Variance by Type (%)", template="plotly_dark"), use_container_width=True)
         with col2: st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Department', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept (%)", template="plotly_dark"), use_container_width=True)
 
-    elif page == "👥 PCI Employee Analysis":
+    elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees vs Market")
         st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Market_Avg', 'Gap (AED)', 'Gap %']], use_container_width=True, hide_index=True)
 
@@ -200,3 +203,11 @@ if df is not None:
             pct = st.number_input("Enter Increment %", 0.0, 100.0, 5.0, 0.5)
             new = int(data['Salary'] * (1 + pct/100))
             st.metric("New Salary", f"{new} AED", f"+{new - int(data['Salary'])}")
+            
+            basic = int(new * 0.7); rem = new - basic
+            is_staff = "Staff" in str(data['Employee Type'])
+            food, other = (0, rem) if is_staff else (300, rem-300 if rem>300 else 0)
+            c1, c2, c3 = st.columns(3)
+            with c1: st.markdown(f"""<div class="market-box"><small>Basic</small><br><span class="value-text">{basic}</span></div>""", unsafe_allow_html=True)
+            with c2: st.markdown(f"""<div class="market-box"><small>Food</small><br><span class="value-text">{food}</span></div>""", unsafe_allow_html=True)
+            with c3: st.markdown(f"""<div class="market-box"><small>Other</small><br><span class="value-text">{other}</span></div>""", unsafe_allow_html=True)
