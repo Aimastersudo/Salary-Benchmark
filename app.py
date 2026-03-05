@@ -18,7 +18,6 @@ st.markdown("""
     .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
     .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 20px; border-radius: 12px; color: #93c5fd; font-size: 15px; line-height: 1.6; border-left: 5px solid #3b82f6; }
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .note-box { background-color: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b; padding: 15px; margin: 10px 0; border-radius: 5px; color: #fbbf24; }
     .value-text { color: #38bdf8; font-size: 18px; font-weight: bold; }
     .highlight-red { color: #ef4444; font-weight: bold; }
     .highlight-green { color: #22c55e; font-weight: bold; }
@@ -50,7 +49,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. TRIPLE DATABASE LOADER (The Wow Logic Engine)
+# 3. TRIPLE DATABASE LOADER (Safe Rounding Engine)
 @st.cache_data
 def load_databases():
     try:
@@ -78,7 +77,6 @@ def load_databases():
         today = pd.to_datetime('today')
         payroll_df['Tenure_Y'] = ((today - payroll_df['DOJ']).dt.days / 365.25).fillna(0).astype(int)
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
-        # 🚀 FIXED THE SYNTAX ERROR (Bracket Added)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
 
         rows = []
@@ -108,7 +106,10 @@ def load_databases():
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
         final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
-        final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).fillna(0).round(0).astype(int)
+        
+        # 🚀 Division by zero & Inf Handling
+        var_calc = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'].replace(0, np.nan) * 100)
+        final_df['Variance %'] = var_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
 
         hc_d = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(final_df, hc_d, on=['Match_Key', 'Department'], how='left')
@@ -125,7 +126,9 @@ def load_databases():
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
         emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
-        emp_data['Gap %'] = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'] * 100).fillna(0).round(0).astype(int)
+        
+        gap_calc = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'].replace(0, np.nan) * 100)
+        emp_data['Gap %'] = gap_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
         emp_data['Gap (AED)'] = (emp_data['Salary'] - emp_data['Market_Avg']).astype(int)
         t_map = dict(zip(core_df['Match_Key'], core_df['Employee Type']))
         emp_data['Employee Type'] = emp_data['Match_Key'].map(t_map).fillna("Worker")
@@ -147,7 +150,8 @@ if df is not None:
         sel_depts = st.multiselect("Filter Dept:", depts, default=depts)
         if st.button("Generate Strategy Report"):
             f_pdf = df[df['Department'].isin(sel_depts)]
-            avg_v = int(f_pdf['Variance %'].mean()) if not f_pdf.empty else 0
+            avg_val_pdf = f_pdf['Variance %'].mean()
+            avg_v = int(avg_val_pdf) if pd.notna(avg_val_pdf) else 0
             worst_d = f_pdf.groupby('Department')['Variance %'].mean().idxmin() if not f_pdf.empty else "N/A"
             crit_df = f_pdf[f_pdf['Variance %'] <= -20].sort_values('Variance %')
             loyalty_count = len(emp_df[emp_df['Tenure_Y'] >= 5])
@@ -162,7 +166,8 @@ if df is not None:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
         c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
-        avg_v = f"{int(f_df['Variance %'].mean()) if not f_df.empty else 0}%"
+        mean_v = f_df['Variance %'].mean()
+        avg_v = f"{int(mean_v) if pd.notna(mean_v) else 0}%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
@@ -180,12 +185,14 @@ if df is not None:
     elif page == "📉 Market Analysis":
         st.title("📊 Detailed Market Disparity Analysis")
         if not f_df.empty:
-            avg_var = int(f_df['Variance %'].mean()); worst_d = f_df.groupby('Department')['Variance %'].mean().idxmin()
+            mean_v = f_df['Variance %'].mean()
+            avg_var = int(mean_v) if pd.notna(mean_v) else 0
+            worst_d = f_df.groupby('Department')['Variance %'].mean().idxmin()
             st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>AI Market Summary:</b> Pioneer is {abs(avg_var)}% behind market. Risk: {worst_d}.</div></div>""", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
                 fig = px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', hover_name='Designation', title="Positioning Matrix")
-                fig.add_shape(type='line', x0=0, y0=0, x1=max(f_df['Market_Avg']), y1=max(f_df['Market_Avg']), line=dict(color='white', dash='dash'))
+                fig.add_shape(type='line', x0=0, y0=0, x1=max(f_df['Market_Avg'] if not f_df.empty else [0]), y1=max(f_df['Market_Avg'] if not f_df.empty else [0]), line=dict(color='white', dash='dash'))
                 fig.update_layout(template="plotly_dark"); st.plotly_chart(fig, use_container_width=True)
             with c2:
                 fig2 = px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Variance %', y='Department', orientation='h', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept")
@@ -227,12 +234,12 @@ if df is not None:
             with col1:
                 pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
                 new_s = int(data['Salary'] * (1 + pct/100))
-                gap_af = int(((new_s - data['Market_Avg']) / data['Market_Avg']) * 100)
+                gap_af = int(((new_s - data['Market_Avg']) / data['Market_Avg'] if data['Market_Avg'] != 0 else 1) * 100)
                 st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
                 st.metric("New Market Gap", f"{gap_af}%")
             with col2:
                 st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>AI Budget Strategy:</b> Incrementing aligns closer to market. Monthly impact: {new_s - int(data['Salary']):,} AED.</div></div>""", unsafe_allow_html=True)
-                fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, title={'text': "Market Position"}, gauge={'axis': {'range': [None, data['Market_Avg']*1.5]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "red"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "green"}]}))
+                fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, title={'text': "Market Position"}, gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "red"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "green"}]}))
                 fig.update_layout(template="plotly_dark", height=280); st.plotly_chart(fig, use_container_width=True)
             st.subheader("💰 Breakdown")
             b = int(new_s * 0.7); rem = new_s - b; f = 0 if "Staff" in str(data['Employee Type']) else 300
