@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 
 # 1. Page Configuration
@@ -15,33 +16,79 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. DATA LOADER - Updated for New CSV Structure
+# 3. TRIPLE DATABASE LOADER - The Ultimate HR Engine
 @st.cache_data
-def load_data():
+def load_databases():
     try:
-        df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
+        # DB 1: Internal Roles
+        core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
+        # DB 2: Actuals Payroll
+        payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
+        # DB 3: External Market Benchmarks
+        market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
+
+        # Clean column spaces
+        for df in [core_df, payroll_df, market_df]:
+            df.columns = df.columns.str.strip()
+
+        # Clean Designations for perfect merging
+        core_df['Designation_Clean'] = core_df['Designation'].astype(str).str.strip().str.title()
+        payroll_df['Designation_Clean'] = payroll_df['Designation'].astype(str).str.strip().str.title()
+        market_df['Designation_Clean'] = market_df['Designation'].astype(str).str.strip().str.title()
+
+        # Alert if Actuals don't match Core Data
+        payroll_desigs = set(payroll_df['Designation_Clean'].unique())
+        core_desigs = set(core_df['Designation_Clean'].unique())
+        unmatched = payroll_desigs - core_desigs
+        if unmatched:
+            st.error(f"⚠️ Warning: The following Designations in your Payroll CSV do not match the Core Data CSV: {', '.join(unmatched)}")
+
+        # Step 1: Headcount Calculation
+        hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
+
+        # Step 2: Dynamic Market Salary Calculation
+        def parse_salary_range(val):
+            val = str(val).replace(',', '').replace('AED', '').strip()
+            if val == '-' or val == '' or str(val).lower() == 'nan': return np.nan
+            if '-' in val:
+                parts = [float(p.strip()) for p in val.split('-') if p.strip()]
+                return sum(parts) / len(parts) if parts else np.nan
+            try: return float(val)
+            except: return np.nan
+
+        # Ignore non-competitor columns
+        ignore_cols = ['#', 'Designation', 'Pioneer Cement', 'Designation_Clean']
+        comp_cols = [c for c in market_df.columns if c not in ignore_cols]
         
-        # Clean column names to avoid space errors
-        df.columns = df.columns.str.strip()
-        
-        # ⚠️ Check if 'Market Salary' exists. If not, show an error warning.
-        if 'Market Salary' not in df.columns:
-            st.error("🚨 Error: 'Market Salary' column is missing in your CSV. Please add it to calculate market variance.")
-            return None
+        # Parse ranges and calculate average for competitors
+        for c in comp_cols:
+            market_df[c] = market_df[c].apply(parse_salary_range)
             
-        # Clean Pioneer Salary (Remove Commas and make it integer)
-        df['Your Salary (AED)'] = df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
-        df['Market Salary'] = df['Market Salary'].astype(str).str.replace(',', '').astype(float)
+        market_df['Calculated Market Salary'] = market_df[comp_cols].mean(axis=1).round(0)
+        market_clean = market_df[['Designation_Clean', 'Calculated Market Salary']].dropna(subset=['Calculated Market Salary'])
+
+        # Step 3: Merge Everything Together
+        merged_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
+        merged_df = pd.merge(merged_df, market_clean, on='Designation_Clean', how='left')
+
+        # Clean Pioneer Salary
+        merged_df['Your Salary (AED)'] = merged_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
+
+        # Fill NAs
+        merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
         
-        # Calculate Market Variance %
-        df['Variance %'] = ((df['Your Salary (AED)'] - df['Market Salary']) / df['Market Salary'] * 100).round(0).astype(int)
+        # If Market Salary is missing for a role, default it to Pioneer salary
+        merged_df['Calculated Market Salary'] = merged_df['Calculated Market Salary'].fillna(merged_df['Your Salary (AED)'])
         
-        return df
+        # Variance calculation
+        merged_df['Variance %'] = ((merged_df['Your Salary (AED)'] - merged_df['Calculated Market Salary']) / merged_df['Calculated Market Salary'] * 100).round(0).astype(int)
+
+        return merged_df
     except Exception as e:
         st.error(f"System Error: {e}")
         return None
 
-df = load_data()
+df = load_databases()
 
 if df is not None:
     # 4. Sidebar Filters
@@ -62,22 +109,20 @@ if df is not None:
     # 5. Dashboard View
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
+        st.caption("🟢 Live 3-Pillar Architecture: Core Roles + Payroll Headcount + Market Benchmarks")
         
-        # Metrics - Using 'Num of Designation' as Headcount
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations Scoped", len(f_df))
-        c2.metric("Total Headcount", int(f_df['Num of Designation'].sum())) 
+        c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
         
         avg_variance = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_variance, delta_color="inverse")
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
 
-        # Data Table
-        display_cols = ['Designation', 'Department', 'Employee Type', 'Num of Designation', 'Your Salary (AED)', 'Market Salary', 'Variance %']
+        display_cols = ['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Calculated Market Salary', 'Variance %']
         st.subheader("Interactive Salary Matrix (AED)")
         event = st.dataframe(f_df[display_cols], use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
 
-        # AI Insight
         if len(event.selection.rows) > 0:
             row = f_df.iloc[event.selection.rows[0]]
             st.markdown(f"### 📋 Strategic Analysis: {row['Designation']}")
@@ -85,7 +130,7 @@ if df is not None:
             <div class="salary-card">
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Department']} 
-                    department is {abs(row['Variance %'])}% below market levels. With a current headcount of <b>{row['Num of Designation']}</b>, 
+                    department is {abs(row['Variance %'])}% below market levels. With a current live headcount of <b>{row['Live_HC']}</b> (synced from payroll), 
                     talent retention should be closely monitored by Management.
                 </div>
             </div>
@@ -109,9 +154,8 @@ if df is not None:
     # 7. Groups View
     elif page == "📁 Structural Groups":
         st.title("Organizational Tier Breakdown")
-        display_cols = ['Designation', 'Department', 'Num of Designation', 'Your Salary (AED)', 'Market Salary', 'Variance %']
+        display_cols = ['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Calculated Market Salary', 'Variance %']
         
-        # Fetching unique employee types to create dynamic tabs
         emp_types = df['Employee Type'].dropna().unique().tolist()
         if emp_types:
             tabs = st.tabs(emp_types)
