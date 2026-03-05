@@ -15,17 +15,16 @@ st.markdown("""
     [data-testid="stSidebar"] { background-color: #111827; border-right: 1px solid #1f2937; }
     .stMetric { background-color: #1f2937; padding: 20px; border-radius: 15px; border: 1px solid #374151; }
     .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
-    .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 15px; border-radius: 10px; color: #93c5fd; }
+    .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 15px; border-radius: 10px; color: #93c5fd; font-size: 15px; line-height: 1.6; }
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .note-box { background-color: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b; padding: 15px; margin: 10px 0; border-radius: 5px; color: #fbbf24; }
-    .outsource-text { color: #3b82f6; font-weight: bold; font-size: 18px; }
     .value-text { color: #38bdf8; font-size: 18px; font-weight: bold; }
     .highlight-red { color: #ef4444; font-weight: bold; }
     .highlight-green { color: #22c55e; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER - Robust Logic for 200 HC & Tenure
+# 3. TRIPLE DATABASE LOADER
 @st.cache_data
 def load_databases():
     try:
@@ -48,27 +47,7 @@ def load_databases():
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
         # Bridge for Payroll Discrepancies
-        bridge = {
-            "Asst.Public Relation Offi": "Asst. Public Relation Officer",
-            "Asst.External Relationship Manager": "Asst. External Relationship Manager",
-            "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
-            "Truck Cum Shovel Operato": "Truck Cum Shovel Operator",
-            "Junior It Help Desk Suppo": "Junior It Help Desk Support",
-            "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)",
-            "Assistant Engineer (Pro": "Assistant Engineer (Production)",
-            "Chief Engineer (Mech)": "Chief Engineer (Mechanical)",
-            "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)",
-            "Senior Engineer(Technical)": "Senior Engineer (Technical)",
-            "Finance Co-Ordinator": "Finance Coordinator",
-            "Marketing Co-Ordinator": "Marketing Coordinator",
-            "Plant Co-Ordinator": "Plant Coordinator",
-            "Sales Co-Ordinator": "Sales Coordinator",
-            "Senior Sales And Logistic": "Senior Sales & Logistics",
-            "Asst.Security Manager": "Asst. Security Manager",
-            "Asst.Purchase Officer": "Asst. Purchase Officer",
-            "Truck Driver - Bulker": "Truck Driver - Bulker",
-            "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"
-        }
+        bridge = {"Asst.Public Relation Offi": "Asst. Public Relation Officer", "Asst.External Relationship Manager": "Asst. External Relationship Manager", "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)", "Truck Cum Shovel Operato": "Truck Cum Shovel Operator", "Junior It Help Desk Suppo": "Junior It Help Desk Support", "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)", "Assistant Engineer (Pro": "Assistant Engineer (Production)", "Chief Engineer (Mech)": "Chief Engineer (Mechanical)", "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)", "Senior Engineer(Technical)": "Senior Engineer (Technical)", "Finance Co-Ordinator": "Finance Coordinator", "Marketing Co-Ordinator": "Marketing Coordinator", "Plant Co-Ordinator": "Plant Coordinator", "Sales Co-Ordinator": "Sales Coordinator", "Senior Sales And Logistic": "Senior Sales & Logistics", "Asst.Security Manager": "Asst. Security Manager", "Asst.Purchase Officer": "Asst. Purchase Officer", "Truck Driver - Bulker": "Truck Driver - Bulker", "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"}
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
         # Dept standardization
@@ -84,7 +63,7 @@ def load_databases():
         payroll_df['Tenure_M'] = ((payroll_df['Tenure_Days'] % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{x['Tenure_Y']}y {x['Tenure_M']}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
 
-        # Split Slash Departments
+        # Split Depts
         rows = []
         for _, row in core_df.iterrows():
             dv = str(row['Department'])
@@ -110,26 +89,26 @@ def load_databases():
         market_df['Market_Avg'] = market_calc[comp_cols].mean(axis=1).round(0)
         m_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # Final Dashboard Prep
+        # Final Dashboard Data
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0)
         final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # Residual Allocation (200 HC Fix)
+        # 200 HC Fix
         hc_d = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(final_df, hc_d, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_D'].fillna(0).astype(int)
         alloc = final_df.groupby('Match_Key')['Live_HC'].sum().reset_index(name='A')
         act = payroll_df.groupby('Match_Key').size().reset_index(name='Actual')
-        comp_m = pd.merge(act, alloc, on='Match_Key', how='left')
-        res = comp_m[comp_m['Actual'] > comp_m['A'].fillna(0)]
+        cm = pd.merge(act, alloc, on='Match_Key', how='left')
+        res = cm[cm['Actual'] > cm['A'].fillna(0)]
         for _, r in res.iterrows():
             key = r['Match_Key']; rem = int(r['Actual'] - r['A'])
             idx = final_df[final_df['Match_Key'] == key].index
             if len(idx) > 0: final_df.at[idx[0], 'Live_HC'] += rem
 
-        # Employee Data
+        # Emp Data
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0)
         emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
@@ -158,7 +137,7 @@ if df is not None:
     f_df = df[df['Department'].isin(sel_depts)]
     f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
-    # 📊 EXECUTIVE DASHBOARD
+    # 1. EXECUTIVE DASHBOARD
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         if "Truck Driver - Bulker" in f_df['Designation'].values:
@@ -167,17 +146,23 @@ if df is not None:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
         c2.metric("Total Headcount", int(f_df['Live_HC'].sum())) 
-        avg_v = f"{int(f_df['Variance %'].mean()) if not f_df.empty else 0}%"
-        c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
+        c3.metric("Avg. Market Gap", f"{int(f_df['Variance %'].mean()) if not f_df.empty else 0}%", delta_color="inverse")
         c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
         st.markdown("---")
-        st.subheader("🔍 Deep-Dive Analysis")
-        sel_role = st.selectbox("Select Role:", f_df['Designation'].unique())
+        st.subheader("🔍 Deep-Dive Role Analysis")
+        sel_role = st.selectbox("Select a Role to view detailed analysis:", f_df['Designation'].unique())
         if sel_role:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Analysis:</b> {row['Designation']} is {abs(row['Variance %'])}% {'below' if row['Variance %'] < 0 else 'above'} market avg. Risk: {'High' if row['Variance %'] < -20 else 'Moderate'}.</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="salary-card">
+                <div class="ai-insight-box">
+                    <b>Gemini HR Analysis:</b> {row['Designation']} in the {row['Department']} department is currently <b>{abs(row['Variance %'])}% {'below' if row['Variance %'] < 0 else 'above'}</b> the market average. 
+                    Retention risk is <b>{'High' if row['Variance %'] < -20 else 'Moderate'}</b>.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             cols = st.columns(len(comp_cols))
             for i, c in enumerate(comp_cols):
                 val = str(row.get(c, "nan"))
@@ -185,18 +170,28 @@ if df is not None:
                     if val in ['nan', '-', 'None']: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span class="outsource-text">Outsource</span></div>""", unsafe_allow_html=True)
                     else: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span class="value-text">{val}</span></div>""", unsafe_allow_html=True)
 
-    # 📉 MARKET ANALYSIS
+    # 2. MARKET ANALYSIS
     elif page == "📉 Market Analysis":
         st.title("📊 Detailed Market Disparity Analysis")
         if not f_df.empty:
-            avg_var = int(f_df['Variance %'].mean())
-            worst_dept = f_df.groupby('Department')['Variance %'].mean().idxmin()
-            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini Market Summary:</b> Pioneer is {abs(avg_var)}% behind market. The {worst_dept} department shows the highest disparity. Alignment budget estimated based on headcount and market average.</div></div>""", unsafe_allow_html=True)
+            avg_v = int(f_df['Variance %'].mean()); worst_d = f_df.groupby('Department')['Variance %'].mean().idxmin()
+            gap_cost = int((f_df['Market_Avg'] - f_df['Your Salary (AED)']).clip(lower=0).multiply(f_df['Live_HC']).sum())
+            
+            st.markdown(f"""
+            <div class="salary-card">
+                <div class="ai-insight-box">
+                    <b>Gemini Market Intelligence:</b> Pioneer is <b>{abs(avg_v)}%</b> behind market benchmarks. 
+                    The <b>{worst_d}</b> department requires urgent review. 
+                    Estimated monthly budget to align all underpaid roles: <b>{gap_cost:,} AED</b>.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             c1, c2 = st.columns(2)
-            with c1: st.plotly_chart(px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', hover_name='Designation', title="Position Matrix", template="plotly_dark"), use_container_width=True)
-            with c2: st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Variance %', y='Department', orientation='h', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept", template="plotly_dark"), use_container_width=True)
+            with c1: st.plotly_chart(px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', hover_name='Designation', title="Salary Positioning Matrix", template="plotly_dark"), use_container_width=True)
+            with c2: st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Variance %', y='Department', orientation='h', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Department (%)", template="plotly_dark"), use_container_width=True)
 
-    # 👥 PCI EMPLOYEES
+    # 3. PCI EMPLOYEES
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
         if not f_emp.empty:
@@ -225,7 +220,7 @@ if df is not None:
             def style_g(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Tenure_Text', 'Salary', 'Market_Avg', 'Gap %']].style.applymap(style_g, subset=['Gap %']), use_container_width=True, hide_index=True)
 
-    # 📈 INCREMENT PLANNER
+    # 4. INCREMENT PLANNER
     elif page == "📈 Increment Planner":
         st.title("📈 Salary Increment Simulator")
         target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
@@ -239,12 +234,12 @@ if df is not None:
                 st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary'])}")
                 st.metric("New Market Gap", f"{gap_after}%", delta=gap_after - data['Gap %'])
             with col2:
-                st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini Advice:</b> {pct}% increment aligns {data['Employee Name']} closer to market. Current status: {'Underpaid' if gap_after < -5 else 'Aligned'}.</div></div>""", unsafe_allow_html=True)
-                fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Market Position"}, gauge={'axis': {'range': [None, data['Market_Avg']*1.5]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "#ef4444"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "#22c55e"}], 'threshold': {'line': {'color': "white", 'width': 4}, 'value': data['Market_Avg']}}))
-                fig.update_layout(template="plotly_dark", height=250, margin=dict(t=50, b=0, l=0, r=0))
+                st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini Advice:</b> {pct}% increment aligns {data['Employee Name']} closer to market. New status: <b>{'Underpaid' if gap_after < -5 else 'Market Aligned'}</b>.</div></div>""", unsafe_allow_html=True)
+                fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, title={'text': "Market Position"}, gauge={'axis': {'range': [None, data['Market_Avg']*1.5]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "#ef4444"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "#22c55e"}], 'threshold': {'line': {'color': "white", 'width': 4}, 'value': data['Market_Avg']}}))
+                fig.update_layout(template="plotly_dark", height=280, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig, use_container_width=True)
             
-            st.subheader("💰 Breakdown")
+            st.subheader("💰 Component Breakdown")
             b = int(new_s * 0.7); rem = new_s - b; f = 0 if "Staff" in str(data['Employee Type']) else 300
             c1, c2, c3 = st.columns(3)
             c1.markdown(f"""<div class="market-box"><small>Basic</small><br><b class="value-text">{b:,}</b></div>""", unsafe_allow_html=True)
