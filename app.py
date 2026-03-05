@@ -14,7 +14,6 @@ st.markdown("""
     .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
     .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 15px; border-radius: 10px; color: #93c5fd; }
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .increment-card { background-color: #111827; padding: 20px; border-radius: 15px; border: 1px solid #3b82f6; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,27 +76,35 @@ def load_databases():
         comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Designation_Clean']]
         market_calc = market_df.copy()
         for c in comp_cols: market_calc[c] = market_calc[c].apply(parse_salary)
+        
+        # 🚀 Rounding Market Avg
         market_df['Calculated Market Salary'] = market_calc[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Designation_Clean', 'Calculated Market Salary'] + comp_cols].dropna(subset=['Calculated Market Salary']).drop_duplicates(subset=['Designation_Clean'])
 
-        # Prepare Core and Payroll Salaries
-        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').str.strip().astype(float)
-        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').str.strip().astype(float)
+        # Prepare Core and Payroll Salaries (Rounding to int)
+        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').str.strip().astype(float).round(0)
+        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').str.strip().astype(float).round(0)
 
         # Merge for Dashboard
         hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
         final_core_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
         final_core_df = pd.merge(final_core_df, market_clean, on='Designation_Clean', how='left')
         final_core_df['Live_HC'] = final_core_df['Live_HC'].fillna(0).astype(int)
-        final_core_df['Calculated Market Salary'] = final_core_df['Calculated Market Salary'].fillna(final_core_df['Your Salary (AED)'])
+        final_core_df['Calculated Market Salary'] = final_core_df['Calculated Market Salary'].fillna(final_core_df['Your Salary (AED)']).astype(int)
+        final_core_df['Your Salary (AED)'] = final_core_df['Your Salary (AED)'].astype(int)
+        
+        # 🚀 Rounding Variance
         final_core_df['Variance %'] = ((final_core_df['Your Salary (AED)'] - final_core_df['Calculated Market Salary']) / final_core_df['Calculated Market Salary'] * 100).round(0).astype(int)
 
         # Merge for Employee Page
         emp_market_df = pd.merge(payroll_df, market_clean[['Designation_Clean', 'Calculated Market Salary']], on='Designation_Clean', how='left')
-        emp_market_df = pd.merge(emp_market_df, core_df[['Designation_Clean', 'Employee Type']], on='Designation_Clean', how='left') # Get Staff/Worker type
-        emp_market_df['Calculated Market Salary'] = emp_market_df['Calculated Market Salary'].fillna(emp_market_df['Salary'])
+        emp_market_df = pd.merge(emp_market_df, core_df[['Designation_Clean', 'Employee Type']], on='Designation_Clean', how='left')
+        emp_market_df['Calculated Market Salary'] = emp_market_df['Calculated Market Salary'].fillna(emp_market_df['Salary']).astype(int)
+        emp_market_df['Salary'] = emp_market_df['Salary'].astype(int)
+        
+        # 🚀 Rounding Gaps
         emp_market_df['Gap (AED)'] = (emp_market_df['Salary'] - emp_market_df['Calculated Market Salary']).fillna(0).astype(int)
-        emp_market_df['Gap %'] = ((emp_market_df['Salary'] - emp_market_df['Calculated Market Salary']) / emp_market_df['Calculated Market Salary'] * 100).fillna(0).round(1)
+        emp_market_df['Gap %'] = ((emp_market_df['Salary'] - emp_market_df['Calculated Market Salary']) / emp_market_df['Calculated Market Salary'] * 100).fillna(0).round(0).astype(int)
 
         return final_core_df, emp_market_df, comp_cols
     except Exception as e:
@@ -113,14 +120,12 @@ if df is not None:
         page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employee Analysis", "📈 Increment Planner", "📁 Structural Groups"])
         st.markdown("---")
         
-        # 🚀 Chained Filtering Logic
         depts = sorted(df['Department'].dropna().unique())
         selected_depts = st.multiselect("1. Select Departments:", depts, default=depts)
         
         filtered_roles = df[df['Department'].isin(selected_depts)]['Designation'].unique()
         selected_roles = st.multiselect("2. Select Designations:", sorted(filtered_roles), default=sorted(filtered_roles))
 
-    # Apply Filter
     f_df = df[(df['Department'].isin(selected_depts)) & (df['Designation'].isin(selected_roles))]
     f_emp = emp_df[(emp_df['Department'].isin(selected_depts)) & (emp_df['Designation'].isin(selected_roles))]
 
@@ -129,15 +134,17 @@ if df is not None:
     # -------------------------------------------------------------
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
-        st.caption("🟢 Live 3-Pillar Architecture Sync")
+        st.caption("🟢 Live 3-Pillar Architecture Sync | All figures rounded")
         
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
         c2.metric("Total HC", int(f_df['Live_HC'].sum())) 
-        avg_v = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty and pd.notna(f_df['Variance %'].mean()) else "0%"
+        # 🚀 Rounding metric avg
+        avg_v = f"{int(f_df['Variance %'].mean())}%" if not f_df.empty and pd.notna(f_df['Variance %'].mean()) else "0%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
         c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
 
+        # Dataframe with rounded figures
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Calculated Market Salary', 'Variance %']], use_container_width=True, hide_index=True)
         
         st.markdown("---")
@@ -181,6 +188,8 @@ if df is not None:
         e1, e2, e3 = st.columns(3)
         e1.metric("Selected Employees", len(f_emp))
         e2.metric("Under Market Avg.", len(f_emp[f_emp['Gap (AED)'] < 0]))
+        
+        # 🚀 Rounding Employee Avg Gap
         avg_gap = f_emp['Gap (AED)'].mean()
         avg_gap_display = f"{int(avg_gap)} AED" if pd.notna(avg_gap) else "N/A"
         e3.metric("Avg. Gap per Employee", avg_gap_display)
@@ -196,33 +205,27 @@ if df is not None:
             st.dataframe(f_emp[display_emp_cols].style.applymap(color_gap, subset=['Gap (AED)', 'Gap %']), use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------
-    # 📈 INCREMENT PLANNER (NEW PAGE)
+    # 📈 INCREMENT PLANNER
     # -------------------------------------------------------------
     elif page == "📈 Increment Planner":
         st.title("📈 Individual Salary Increment Planner")
-        st.caption("Calculate new salary breakdowns based on PCI Staff/Worker rules.")
-        
-        # 1. Select Employee
         emp_list = emp_df.sort_values('Employee Name')['Employee Name'].unique()
         target_emp_name = st.selectbox("Select Employee to Plan Increment:", emp_list)
         
         if target_emp_name:
             emp_data = emp_df[emp_df['Employee Name'] == target_emp_name].iloc[0]
-            
-            # 2. Input Increment %
             c1, c2 = st.columns([1, 2])
             with c1:
                 inc_pct = st.number_input("Enter Increment Percentage (%)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
             
-            # 3. Calculations
-            current_sal = emp_data['Salary']
-            new_sal = current_sal * (1 + inc_pct/100)
+            # 🚀 All calculations rounded to int
+            current_sal = int(emp_data['Salary'])
+            new_sal = int(current_sal * (1 + inc_pct/100))
             diff = new_sal - current_sal
             is_staff = str(emp_data['Employee Type']).lower() == 'staff'
             
-            # Breakdown Rules
-            basic = new_sal * 0.70
-            remaining = new_sal * 0.30
+            basic = int(new_sal * 0.70)
+            remaining = new_sal - basic # Ensure total matches exactly
             
             if is_staff:
                 food = 0
@@ -233,29 +236,27 @@ if df is not None:
                 other = remaining - 300 if (remaining - 300) > 0 else 0
                 rule_type = "Worker Rule (70/30 + 300 Food)"
 
-            # 4. Display Results
             st.markdown("---")
             res1, res2, res3 = st.columns(3)
-            res1.metric("Current Salary", f"{int(current_sal)} AED")
-            res2.metric("New Salary", f"{int(new_sal)} AED", delta=f"+{int(diff)}")
+            res1.metric("Current Salary", f"{current_sal} AED")
+            res2.metric("New Salary", f"{new_sal} AED", delta=f"+{diff}")
             res3.metric("Applied Rule", rule_type)
 
             st.markdown("#### 📋 New Salary Component Breakdown")
             comp1, comp2, comp3 = st.columns(3)
             with comp1:
-                st.markdown(f"""<div class="market-box"><small>Basic Salary (70%)</small><br><b style="font-size:24px; color:#22c55e;">{int(basic)} AED</b></div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div class="market-box"><small>Basic Salary (70%)</small><br><b style="font-size:24px; color:#22c55e;">{basic} AED</b></div>""", unsafe_allow_html=True)
             with comp2:
-                st.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b style="font-size:24px; color:#38bdf8;">{int(food)} AED</b></div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b style="font-size:24px; color:#38bdf8;">{food} AED</b></div>""", unsafe_allow_html=True)
             with comp3:
-                st.markdown(f"""<div class="market-box"><small>Other Allowance</small><br><b style="font-size:24px; color:#f59e0b;">{int(other)} AED</b></div>""", unsafe_allow_html=True)
-
-            st.info(f"Insight: Increasing {target_emp_name}'s salary by {inc_pct}% will cost the company an additional {int(diff)} AED per month.")
+                st.markdown(f"""<div class="market-box"><small>Other Allowance</small><br><b style="font-size:24px; color:#f59e0b;">{other} AED</b></div>""", unsafe_allow_html=True)
 
     # -------------------------------------------------------------
     # 📁 STRUCTURAL GROUPS
     # -------------------------------------------------------------
     elif page == "📁 Structural Groups":
         st.title("Organizational Tier Breakdown")
+        f_df = df[df['Department'].isin(selected_depts)]
         emp_types = df['Employee Type'].dropna().unique().tolist()
         if emp_types:
             tabs = st.tabs(emp_types)
