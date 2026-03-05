@@ -21,7 +21,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER - The Final 200 HC "Residual Allocation" Sync
+# 3. TRIPLE DATABASE LOADER
 @st.cache_data
 def load_databases():
     try:
@@ -32,7 +32,7 @@ def load_databases():
         for d in [core_df, payroll_df, market_df]:
             d.columns = d.columns.str.strip()
 
-        # Normalization
+        # Master Normalization
         def master_clean(text):
             t = str(text).strip().title()
             t = " ".join(t.split())
@@ -68,7 +68,7 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # Department Splitting
+        # Dept Splitting
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -107,7 +107,7 @@ def load_databases():
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Variance %'] = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'] * 100).round(0).astype(int)
 
-        # Robust Headcount Sync (Residual Allocation)
+        # Residual Allocation Headcount Sync (Ensures exactly 200)
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_Dept')
         final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_Dept'].fillna(0).astype(int)
@@ -141,11 +141,17 @@ def load_databases():
 df, emp_df, comp_columns = load_databases()
 
 if df is not None:
-    # 4. SIDEBAR WITH LOGO
+    # 4. SIDEBAR WITH LOGO HANDLING
     with st.sidebar:
-        # Check if PCI_Logo.png exists, if not use a generic placeholder
-        if os.path.exists("PCI_Logo.png"):
-            st.image("PCI_Logo.png", use_container_width=True)
+        # Search for logo in multiple formats
+        logo_path = None
+        for ext in ["png", "jpg", "jpeg"]:
+            if os.path.exists(f"PCI_Logo.{ext}"):
+                logo_path = f"PCI_Logo.{ext}"
+                break
+        
+        if logo_path:
+            st.image(logo_path, use_container_width=True)
         else:
             st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PCI+HR+AI", use_container_width=True)
             
@@ -171,11 +177,13 @@ if df is not None:
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
+        # 🔍 DEEP-DIVE SECTION
         st.markdown("---")
         st.subheader("🔍 Deep-Dive Market Analysis")
         sel_role = st.selectbox("Select Designation:", f_df['Designation'].unique())
         if sel_role:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
+            st.markdown(f"#### Market Breakdown for {row['Designation']}")
             cols = st.columns(len(comp_columns))
             for i, comp in enumerate(comp_columns):
                 val = str(row.get(comp, "nan"))
