@@ -1,0 +1,91 @@
+Designation,Dept,Tier,HC,Pioneer,Market
+Accountant,Finance,Professional Staff,1,6500,9250
+Admin Assistant,Production,Professional Staff,1,3000,4750
+Assistant Engineer (Production),Production,Professional Staff,1,3813,10000
+Assistant Sales Manager,Sales & Logistics,Professional Staff,1,9500,14250
+Assistant Stores Manager,Sales & Logistics,Leadership & Management,1,18413,10500
+Asst. External Relationship Manager,Stores,Professional Staff,1,21493,14000
+Asst. Public Relation Officer,External Relationship,Professional Staff,1,11859,9000
+Asst. Purchase Officer,Admin,Professional Staff,1,5225,9000
+Asst. Security Manager,HSE,Leadership & Management,1,14529,15000
+Attendant,Production,Technical Operations,9,1848,4100
+Auto Garage Incharge,Mechanical,Technical Operations,1,7000,7000
+CCR Operator,Production,Technical Operations,5,4070,7750
+Chemist,QC,Professional Staff,1,5500,9750
+Chief Engineer (Mechanical),Mechanical,Leadership & Management,1,14685,25000
+Cook,Admin,Technical Operations,3,2151,2500
+DEPUTY HR MANAGER,HR,Leadership & Management,1,9500,16500
+Diesel Mechanic,Mechanical,Technical Operations,1,3000,5000
+Driver,Admin,Technical Operations,5,2907,4750
+Dy. Chief Engineer (Electrical),E & I,Leadership & Management,1,8500,21500
+Dy. Chief Engineer (Mechanical),Mechanical,Leadership & Management,2,9197,17500
+Electrician,E & I,Technical Operations,6,2302,4500
+Finance Coordinator,Finance,Professional Staff,1,6000,8000
+Financial Accountant,Finance,Professional Staff,1,5155,9250
+Financial Analyst,Finance,Professional Staff,1,8000,12000
+First Aid,Admin,Professional Staff,1,5745,5000
+Fitter,Mechanical,Technical Operations,4,3388,4100
+Foreman,Mechanical / Production,Technical Operations,2,3534,7500
+Forklift Operator,Mechanical,Technical Operations,2,2116,3000
+Gardener,Admin,Technical Operations,1,2000,1700
+General Helper,Admin,Technical Operations,1,1800,2000
+Head Of Finance,Finance,Leadership & Management,1,25000,30000
+Heavy Truck Driver,Sales & Logistics,Technical Operations,3,2844,4500
+House Keeping Attendant,Admin,Technical Operations,5,1553,1700
+House Keeping Mechanical,Mechanical,Technical Operations,1,1500,1700
+HR & ADMIN Manager,HR,Leadership & Management,1,25000,20000
+HR Executive (External Rel.),External Relationship,Professional Staff,1,7000,8000
+HR Executive (Internal HR),HR,Professional Staff,1,4000,8000
+HSE Officer,HSE,Professional Staff,1,4000,8500
+HSE Supervisor,HSE,Leadership & Management,1,6000,16500
+Hydra Operator,Mechanical,Technical Operations,1,2376,3600
+Junior Engineer (Instrumentation),E & I,Professional Staff,1,5840,8000
+Junior IT Help Desk Support,IT,Professional Staff,1,3300,7000
+Lab Technician,QC,Professional Staff,2,3000,6250
+Loader Operator,Production,Technical Operations,1,1980,3100
+Marketing Coordinator,Sales & Logistics,Professional Staff,1,5200,6500
+Mason,Production,Technical Operations,5,2216,2750
+Mason (Mechanical),Mechanical,Technical Operations,1,2100,2750
+Mechanic,Mechanical,Technical Operations,1,2400,4500
+MTO,Mechanical,Technical Operations,1,2865,4100
+Office Boy,Admin,Technical Operations,2,1400,2900
+Packer Operator,Mechanical,Technical Operations,11,1762,4100
+Packing Plant Supervisor,Mechanical,Leadership & Management,1,5800,7750
+Palletizer Operator,Mechanical,Technical Operations,1,1800,2750
+Planning & Inspection Engineer,Mechanical,Professional Staff,1,12000,12500
+Plant Coordinator,Georgia,Professional Staff,1,11000,10500
+Procurement Executive,Procurment,Professional Staff,1,3000,9000
+Production Incharge,Production,Leadership & Management,1,8300,9000
+Pump House Operator,Mechanical,Technical Operations,3,1867,3250
+Purchase Agent,Procurment,Professional Staff,1,4800,8500
+Quality Control Manager,QC,Leadership & Management,1,28000,24000
+Raw Materials Supervisor,Production,Leadership & Management,1,9700,9500
+Rigger,Mechanical,Technical Operations,11,2273,3600
+Sales Coordinator,Sales & Logistics,Professional Staff,2,6000,6250
+Sales Executive,Sales & Logistics,Professional Staff,0,8000,8750
+sample boy,QC,Technical Operations,7,1686,2200
+Security Guard,HSE,Technical Operations,12,1767,2400
+Security Manager,HSE,Leadership & Management,1,14758,14500
+Security Supervisor,HSE,Leadership & Management,1,4000,7500
+Senior Sales & Logistics,Sales & Logistics,Leadership & Management,1,22800,15500
+Shovel Operator,Production,Technical Operations,1,2200,3750
+Stacker Operator,Production,Technical Operations,1,2400,4100
+Store House Man,Stores,Technical Operations,1,1500,3250
+Stores Assistant,Stores,Technical Operations,1,2116,7500
+Stores Officer,Stores,Professional Staff,1,6000,9500
+Technician,E & I,Technical Operations,4,2361,3500
+Tester / Gauger,QC,Technical Operations,2,2285,5200
+Transport Incharge,Admin,Leadership & Management,1,13135,12500
+Truck Cum Shovel Operator,Production,Technical Operations,1,2800,3800
+Tyre Mechanic,Mechanical,Technical Operations,1,2000,2750
+Weigh Bridge Operator,Sales & Logistics,Technical Operations,7,2392,5000
+Welder,Mechanical,Technical Operations,7,2550,4100
+WHR Operator,WHR,Technical Operations,2,3750,5000
+WHR Supervisor,WHR,Leadership & Management,1,5500,10000
+Engineer (Instrumentation),E & I,Professional Staff,3,5920,10750
+Assistant Engineer (Mechanical),Mechanical,Professional Staff,1,6359,10000
+Truck Driver - Bulker,Sales & Logistics,Technical Operations,12,2000,4750
+Senior Engineer (Technical),Sales & Logistics,Professional Staff,1,10000,10000
+Sales Administrative Assistant,Sales & Logistics,Professional Staff,1,3200,7750
+Acting IT Manager,IT,Leadership & Management,1,11000,16500
+Projects Manager,Projects,Leadership & Management,1,16000,20000
