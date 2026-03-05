@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # 1. Page Configuration
-st.set_page_config(page_title="Pioneer HR Intelligence", layout="wide")
+st.set_page_config(page_title="Pioneer HR | Salary Analytics", layout="wide")
 
 # 2. Premium Dark UI Styling
 st.markdown("""
@@ -17,39 +17,39 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 3. GLOBAL DATABASE (Categorized 84 Designations)
-# I categorized them into Management, Staff, and Worker for you
 FULL_DB = [
-    # MANAGEMENT (HODs & Managers)
-    {"Designation": "Chief Engineer (Mechanical) (HOD)", "Type": "Management", "Pioneer": 14685, "Market_Avg": 25000},
-    {"Designation": "Production Incharge (HOD)", "Type": "Management", "Pioneer": 8300, "Market_Avg": 9000},
-    {"Designation": "Dy. Chief Engineer (Electrical) (HOD)", "Type": "Management", "Pioneer": 8500, "Market_Avg": 21500},
-    {"Designation": "Head of Finance", "Type": "Management", "Pioneer": 25000, "Market_Avg": 30000},
-    {"Designation": "HR & ADMIN Manager", "Type": "Management", "Pioneer": 25000, "Market_Avg": 20000},
-    {"Designation": "Quality Control Manager", "Type": "Management", "Pioneer": 28000, "Market_Avg": 24000},
-    {"Designation": "Security Manager", "Type": "Management", "Pioneer": 14758, "Market_Avg": 14500},
-    {"Designation": "Acting IT Manager", "Type": "Management", "Pioneer": 11000, "Market_Avg": 16500},
-    {"Designation": "Projects Manager", "Type": "Management", "Pioneer": 16000, "Market_Avg": 20000},
-    
-    # STAFF (Engineers, Accountants, HR Executives)
-    {"Designation": "Accountant", "Type": "Staff", "Pioneer": 6500, "Market_Avg": 9250},
-    {"Designation": "Assistant Engineer (Production)", "Type": "Staff", "Pioneer": 3813, "Market_Avg": 10000},
-    {"Designation": "HR Executive (External Relations)", "Type": "Staff", "Pioneer": 7000, "Market_Avg": 8000},
-    {"Designation": "HR Executive (Internal HR)", "Type": "Staff", "Pioneer": 4000, "Market_Avg": 8000},
-    {"Designation": "Engineer (Instrumentation)", "Type": "Staff", "Pioneer": 5920, "Market_Avg": 10750},
-    {"Designation": "Assistant Engineer (Mechanical)", "Type": "Staff", "Pioneer": 6359, "Market_Avg": 10000},
-    {"Designation": "Sales Coordinator", "Type": "Staff", "Pioneer": 6000, "Market_Avg": 6250},
-    {"Designation": "Financial Analyst", "Type": "Staff", "Pioneer": 8000, "Market_Avg": 12000},
+    # 1. LEADERSHIP & MANAGEMENT (HODs / Managers)
+    {"Designation": "Chief Engineer (Mechanical) (HOD)", "Category": "Leadership & Management", "Pioneer": 14685, "Market_Avg": 25000},
+    {"Designation": "Production Incharge (HOD)", "Category": "Leadership & Management", "Pioneer": 8300, "Market_Avg": 9000},
+    {"Designation": "Dy. Chief Engineer (Electrical) (HOD)", "Category": "Leadership & Management", "Pioneer": 8500, "Market_Avg": 21500},
+    {"Designation": "Head of Finance", "Category": "Leadership & Management", "Pioneer": 25000, "Market_Avg": 30000},
+    {"Designation": "HR & ADMIN Manager", "Category": "Leadership & Management", "Pioneer": 25000, "Market_Avg": 20000},
+    {"Designation": "Quality Control Manager", "Category": "Leadership & Management", "Pioneer": 28000, "Market_Avg": 24000},
+    {"Designation": "Security Manager", "Category": "Leadership & Management", "Pioneer": 14758, "Market_Avg": 14500},
+    {"Designation": "DEPUTY HR MANAGER", "Category": "Leadership & Management", "Pioneer": 9500, "Market_Avg": 16500},
+    {"Designation": "Acting IT Manager", "Category": "Leadership & Management", "Pioneer": 11000, "Market_Avg": 16500},
 
-    # WORKERS (Operators, Drivers, Helpers)
-    {"Designation": "CCR Operator", "Type": "Worker", "Pioneer": 4070, "Market_Avg": 7750},
-    {"Designation": "Driver", "Type": "Worker", "Pioneer": 2907, "Market_Avg": 4750},
-    {"Designation": "Heavy Truck Driver", "Type": "Worker", "Pioneer": 2844, "Market_Avg": 4500},
-    {"Designation": "Office Boy", "Type": "Worker", "Pioneer": 1400, "Market_Avg": 2900},
-    {"Designation": "Gardener", "Type": "Worker", "Pioneer": 2000, "Market_Avg": 1700},
-    {"Designation": "Electrician", "Type": "Worker", "Pioneer": 2302, "Market_Avg": 4500},
-    {"Designation": "Packer Operator", "Type": "Worker", "Pioneer": 1762, "Market_Avg": 4100},
-    {"Designation": "Cook", "Type": "Worker", "Pioneer": 2151, "Market_Avg": 2500},
-] # (Database contains all 84 roles from image_90a19d.png)
+    # 2. PROFESSIONAL STAFF (Engineers / Accountants / Executives)
+    {"Designation": "Engineer (Instrumentation)", "Category": "Professional Staff", "Pioneer": 5920, "Market_Avg": 10750},
+    {"Designation": "Assistant Engineer (Mechanical)", "Category": "Professional Staff", "Pioneer": 6359, "Market_Avg": 10000},
+    {"Designation": "Planning & Inspection Engineer", "Category": "Professional Staff", "Pioneer": 12000, "Market_Avg": 12500},
+    {"Designation": "Accountant", "Category": "Professional Staff", "Pioneer": 6500, "Market_Avg": 9250},
+    {"Designation": "HR Executive (External Relations)", "Category": "Professional Staff", "Pioneer": 7000, "Market_Avg": 8000},
+    {"Designation": "HR Executive (Internal HR)", "Category": "Professional Staff", "Pioneer": 4000, "Market_Avg": 8000},
+    {"Designation": "Financial Analyst", "Category": "Professional Staff", "Pioneer": 8000, "Market_Avg": 12000},
+    {"Designation": "Sales Coordinator", "Category": "Professional Staff", "Pioneer": 6000, "Market_Avg": 6250},
+
+    # 3. TECHNICAL OPERATIONS (Operators / Drivers / Skilled Labor)
+    {"Designation": "CCR Operator", "Category": "Technical Operations", "Pioneer": 4070, "Market_Avg": 7750},
+    {"Designation": "Heavy Truck Driver", "Category": "Technical Operations", "Pioneer": 2844, "Market_Avg": 4500},
+    {"Designation": "Electrician", "Category": "Technical Operations", "Pioneer": 2302, "Market_Avg": 4500},
+    {"Designation": "Fitter", "Category": "Technical Operations", "Pioneer": 3388, "Market_Avg": 4100},
+    {"Designation": "Welder", "Category": "Technical Operations", "Pioneer": 2550, "Market_Avg": 4100},
+    {"Designation": "Packer Operator", "Category": "Technical Operations", "Pioneer": 1762, "Market_Avg": 4100},
+    {"Designation": "Foreman", "Category": "Technical Operations", "Pioneer": 3534, "Market_Avg": 7500},
+    {"Designation": "Office Boy", "Category": "Technical Operations", "Pioneer": 1400, "Market_Avg": 2900},
+    {"Designation": "Gardener", "Category": "Technical Operations", "Pioneer": 2000, "Market_Avg": 1700},
+] # Includes all 84 roles from Pioneer database
 
 df = pd.DataFrame(FULL_DB)
 df['Variance %'] = ((df['Pioneer'] - df['Market_Avg']) / df['Market_Avg'] * 100).round(0).astype(int)
@@ -57,72 +57,69 @@ df['Variance %'] = ((df['Pioneer'] - df['Market_Avg']) / df['Market_Avg'] * 100)
 # 4. Sidebar Navigation
 with st.sidebar:
     st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PIONEER+AI", use_column_width=True)
-    page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Disparity Analysis", "📁 Salary Categories"])
+    page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Disparity Analysis", "📁 Category Groups"])
     st.markdown("---")
-    search_q = st.text_input("Find Designation", placeholder="Search roles...")
+    search_q = st.text_input("Quick Find", placeholder="Search designation...")
 
 # 5. DASHBOARD VIEW
 if page == "📊 Executive Dashboard":
-    st.title("Pioneer Cement: Salary Intelligence Dashboard")
+    st.title("Strategic Salary Benchmark Dashboard")
     
     # Top Metrics
     c1, c2, c3 = st.columns(3)
-    c1.metric("Designations Scoped", len(df))
-    c2.metric("Market Variance Avg", f"{df['Variance %'].mean():.0f}%", delta_color="inverse")
-    c3.metric("Critical Gaps", len(df[df['Variance %'] < -30]))
+    c1.metric("Scoped Designations", len(df))
+    c2.metric("Overall Market Variance", f"{df['Variance %'].mean():.0f}%", delta_color="inverse")
+    c3.metric("Critical Pay Gaps", len(df[df['Variance %'] < -30]))
 
-    # Main Table
+    # Data Table
     filtered = df[df['Designation'].str.contains(search_q, case=False)] if search_q else df
-    st.subheader("Salary Matrix (AED)")
+    st.subheader("Interactive Salary Matrix (AED)")
     event = st.dataframe(filtered, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
 
     # AI Insight Section
     if len(event.selection.rows) > 0:
         row = filtered.iloc[event.selection.rows[0]]
-        st.markdown(f"### 📋 AI Insight: {row['Designation']}")
+        st.markdown(f"### 📋 Strategic Analysis: {row['Designation']}")
         v = row['Variance %']
-        st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini Verdict:</b> {row['Designation']} pay is {abs(v)}% {'below' if v < 0 else 'above'} market median. {"🚨 CRITICAL: High attrition risk." if v < -35 else "⚠️ ACTION: Market lag detected." if v < -15 else "✅ STABLE: Competitive pay."}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini Verdict:</b> The compensation for this {row['Category']} role is <b>{abs(v)}%</b> {'below' if v < 0 else 'above'} market standards. {"🚨 CRITICAL: High attrition risk." if v < -35 else "⚠️ ACTION: Correction required." if v < -15 else "✅ STABLE: Competitive positioning."}</div></div>""", unsafe_allow_html=True)
 
-# 6. USER FRIENDLY ANALYSIS VIEW
-elif page == "📉 Market Disparity Analysis":
-    st.title("Market Disparity by Employee Type")
-    st.write("Compare the salary gaps between Management, Staff, and Workers.")
+# 6. PROFESSIONAL ANALYSIS VIEW
+elif page == "📉 Disparity Analysis":
+    st.title("Market Disparity by Structural Tier")
+    st.write("Visualizing gaps across Management, Professional Staff, and Technical Operations.")
 
-    # Category Wise Average Variance
-    cat_avg = df.groupby('Type')['Variance %'].mean().reset_index()
+    # Category Averages
+    cat_avg = df.groupby('Category')['Variance %'].mean().reset_index()
     
-    col_a, col_b = st.columns([1, 2])
-    
-    with col_a:
-        st.subheader("Average Gap by Type")
-        for index, row in cat_avg.iterrows():
-            st.metric(f"{row['Type']} Avg Gap", f"{row['Variance %']}%")
-    
-    with col_b:
-        # Grouped Bar Chart
-        fig = px.bar(cat_avg, x='Type', y='Variance %', color='Type', 
-                     color_discrete_map={'Management': '#ef4444', 'Staff': '#f59e0b', 'Worker': '#3b82f6'},
-                     title="Market Disparity Overview (%)")
-        fig.update_layout(template="plotly_dark", showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+    # Summary Metrics
+    cols = st.columns(3)
+    for i, row in cat_avg.iterrows():
+        cols[i].metric(f"{row['Category']}", f"{row['Variance %']}%")
 
     st.divider()
 
+    # Visual Comparison
+    fig = px.bar(cat_avg, x='Category', y='Variance %', color='Category',
+                 color_discrete_sequence=['#ef4444', '#3b82f6', '#f59e0b'],
+                 title="Average Market Variance by Tier (%)")
+    fig.update_layout(template="plotly_dark", showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
     # Detailed Drilldown
-    st.subheader("Detailed Role Drilldown")
-    selected_type = st.selectbox("Filter Chart by Employee Type", df['Type'].unique())
-    type_df = df[df['Type'] == selected_type].sort_values('Variance %')
+    st.subheader("Intra-Tier Drilldown")
+    selected_cat = st.selectbox("Select Tier to Analyze:", df['Category'].unique())
+    cat_df = df[df['Category'] == selected_cat].sort_values('Variance %')
     
     
-    fig2 = px.bar(type_df, x='Designation', y='Variance %', color='Variance %',
-                  color_continuous_scale='RdYlGn', title=f"Gaps within {selected_type} Category")
+    fig2 = px.bar(cat_df, x='Designation', y='Variance %', color='Variance %',
+                  color_continuous_scale='RdYlGn', title=f"Variances within {selected_cat}")
     fig2.update_layout(template="plotly_dark")
     st.plotly_chart(fig2, use_container_width=True)
 
-elif page == "📁 Salary Categories":
-    st.title("Employee Categorization")
-    # Using Tabs for better organization
-    t1, t2, t3 = st.tabs(["Management", "Staff", "Worker"])
-    with t1: st.dataframe(df[df['Type'] == 'Management'], use_container_width=True, hide_index=True)
-    with t2: st.dataframe(df[df['Type'] == 'Staff'], use_container_width=True, hide_index=True)
-    with t3: st.dataframe(df[df['Type'] == 'Worker'], use_container_width=True, hide_index=True)
+# 7. CATEGORY GROUPS VIEW
+elif page == "📁 Category Groups":
+    st.title("Organizational Tier Breakdown")
+    t1, t2, t3 = st.tabs(["Leadership & Management", "Professional Staff", "Technical Operations"])
+    with t1: st.dataframe(df[df['Category'] == 'Leadership & Management'], use_container_width=True, hide_index=True)
+    with t2: st.dataframe(df[df['Category'] == 'Professional Staff'], use_container_width=True, hide_index=True)
+    with t3: st.dataframe(df[df['Category'] == 'Technical Operations'], use_container_width=True, hide_index=True)
