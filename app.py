@@ -119,7 +119,7 @@ if df is not None:
         st.image("https://via.placeholder.com/200x60/111827/f8fafc?text=PIONEER+AI", use_column_width=True)
         page = st.radio("MAIN MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employee Analysis", "📈 Increment Planner"])
         depts = sorted(df['Department'].dropna().unique())
-        sel_depts = st.multiselect("Filter Department:", depts, default=depts)
+        sel_depts = st.multiselect("Filter Dept:", depts, default=depts)
 
     f_df = df[df['Department'].isin(sel_depts)]
     f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
@@ -127,9 +127,8 @@ if df is not None:
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         
-        # 🚀 Strategic Note for Bulker Drivers
         if "Truck Driver - Bulker" in f_df['Designation'].values:
-            st.markdown("""<div class="note-box"><b>📌 Strategic Note:</b> Truck Driver - Bulker salaries are generally consistent across the industry as total compensation is heavily driven by <b>Trip Allowances</b> rather than basic salary differences.</div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="note-box"><b>📌 Note:</b> Truck Driver - Bulker salaries are largely consistent as trip allowances are the main earnings driver.</div>""", unsafe_allow_html=True)
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
@@ -137,21 +136,35 @@ if df is not None:
         avg_v = f"{int(f_df['Variance %'].mean())}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
         c4.metric("Critical Gaps", len(f_df[f_df['Variance %'] < -30]))
+        
         st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
-    elif page == "👥 PCI Employee Analysis":
-        st.title("👥 PCI Employees vs Market")
-        # 🚀 Duplicate Note here for visibility
-        if "Truck Driver - Bulker" in f_emp['Designation'].values:
-             st.markdown("""<div class="note-box"><b>📌 Note:</b> For Bulker Drivers, 'Market Gap' calculation excludes variable Trip Allowances common in the sector.</div>""", unsafe_allow_html=True)
-        st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Market_Avg', 'Gap (AED)', 'Gap %']], use_container_width=True, hide_index=True)
+        # 🚀 🚀 DEEP-DIVE SECTION RESTORED 🚀 🚀
+        st.markdown("---")
+        st.subheader("🔍 Deep-Dive Market Analysis")
+        sel_role = st.selectbox("Select a Designation to view competitor breakdown:", f_df['Designation'].unique())
+        
+        if sel_role:
+            row = f_df[f_df['Designation'] == sel_role].iloc[0]
+            st.markdown(f"#### Market Breakdown for {row['Designation']}")
+            cols = st.columns(len(comp_columns))
+            for i, comp in enumerate(comp_columns):
+                val = str(row.get(comp, "nan"))
+                with cols[i]:
+                    if val in ['nan', '-', '', 'None']:
+                        st.markdown(f"""<div class="market-box"><small>{comp}</small><br><span class="outsource-text">Outsource</span></div>""", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""<div class="market-box"><small>{comp}</small><br><span class="value-text">{val}</span></div>""", unsafe_allow_html=True)
 
-    # (Other pages remain standard)
     elif page == "📉 Market Analysis":
         st.title("📊 Market Disparity Analysis")
         col1, col2 = st.columns(2)
         with col1: st.plotly_chart(px.bar(f_df.groupby('Employee Type')['Variance %'].mean().reset_index(), x='Employee Type', y='Variance %', color='Employee Type', title="Variance by Type (%)", template="plotly_dark"), use_container_width=True)
         with col2: st.plotly_chart(px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Department', y='Variance %', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept (%)", template="plotly_dark"), use_container_width=True)
+
+    elif page == "👥 PCI Employee Analysis":
+        st.title("👥 PCI Employees vs Market")
+        st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Market_Avg', 'Gap (AED)', 'Gap %']], use_container_width=True, hide_index=True)
 
     elif page == "📈 Increment Planner":
         st.title("📈 Increment Planner")
