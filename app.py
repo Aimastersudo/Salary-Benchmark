@@ -50,7 +50,7 @@ if df is not None:
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         
-        # Metrics - Headcount exactly as Integer
+        # Metrics - Headcount safely converted to Integer
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Designations", len(f_df))
         c2.metric("Total Headcount", int(f_df['HC'].sum())) 
@@ -70,7 +70,7 @@ if df is not None:
                 <div class="ai-insight-box">
                     <b>Gemini HR Analysis:</b> Current pay for {row['Designation']} in the {row['Dept']} 
                     department is {abs(row['Variance %'])}% below market levels. With a headcount of {row['HC']}, 
-                    talent retention should be prioritized.
+                    talent retention should be prioritized by Management.
                 </div>
             </div>
             """, unsafe_allow_html=True)
