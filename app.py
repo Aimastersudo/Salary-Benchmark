@@ -16,24 +16,23 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. DUAL DATABASE LOADER - Auto Fixing Hidden Spaces & Encoding
+# 3. DUAL DATABASE LOADER - Auto Fixing Hidden Spaces
 @st.cache_data
 def load_databases():
     try:
-        # DB 1: Load Benchmark Data (utf-8-sig removes hidden Excel characters)
+        # DB 1: Load Benchmark Data 
         bench_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         
-        # DB 2: Load Actuals Payroll Data
+        # DB 2: Load Actuals Payroll Data (The one you just uploaded)
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         
-        # 🚀 THE FIX: Clean hidden spaces from column names in BOTH files
+        # 🚀 FIX 1: Clean hidden spaces from Column Names
         bench_df.columns = bench_df.columns.str.strip()
         payroll_df.columns = payroll_df.columns.str.strip()
         
-        # Check if 'Designation' column exists after cleaning
-        if 'Designation' not in payroll_df.columns:
-            st.error("Error: 'Designation' column not found in actuals_payroll.csv. Please check the spelling in row 1.")
-            return None
+        # 🚀 FIX 2: Clean hidden spaces from the actual Designation Names
+        bench_df['Designation'] = bench_df['Designation'].astype(str).str.strip()
+        payroll_df['Designation'] = payroll_df['Designation'].astype(str).str.strip()
             
         # Calculate Dynamic Headcount from Payroll Data 
         hc_df = payroll_df.groupby('Designation').size().reset_index(name='Live_HC')
@@ -81,7 +80,6 @@ if df is not None:
         c1.metric("Designations Scoped", len(f_df))
         c2.metric("Live Headcount", int(f_df['Live_HC'].sum())) 
         
-        # Handle division by zero or empty dataframe for Avg Variance
         avg_variance = f"{f_df['Variance %'].mean():.0f}%" if not f_df.empty else "0%"
         c3.metric("Avg. Market Gap", avg_variance, delta_color="inverse")
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
