@@ -8,31 +8,31 @@ Asst. External Relationship Manager,External Relationship,Professional Staff,1,2
 Asst. Public Relation Officer,Admin,Professional Staff,1,11859,9000
 Asst. Purchase Officer,Procurement,Professional Staff,1,6000,9000
 Asst. Security Manager,HSE,Leadership & Management,1,14529,15000
-Attendant,Production,Technical Operations,9,1870,4100
+Attendant,Production,Technical Operations,10,1870,4100
 Auto Garage Incharge,Mechanical,Technical Operations,1,7000,7000
 CCR Operator,Production,Technical Operations,5,4070,7750
 Chemist,Quality Control,Professional Staff,1,5500,9750
 Chief Engineer (Mech),Mechanical,Leadership & Management,1,14685,25000
-Cook,Admin,Technical Operations,3,2151,2500
+Cook,Admin,Technical Operations,4,2151,2500
 DEPUTY HR MANAGER,HR Administration,Leadership & Management,1,9500,16500
 Diesel Mechanic,Mechanical,Technical Operations,1,3000,5000
-Driver,Admin,Technical Operations,5,2907,4750
+Driver,Admin,Technical Operations,6,2907,4750
 Dy. Chief Engineer (Electrical),E & I,Leadership & Management,1,8500,21500
 Dy. Chief Engineer (Mech),Mechanical,Leadership & Management,2,9197,17500
-Electrician,E & I,Technical Operations,6,2302,4500
+Electrician,E & I,Technical Operations,7,2302,4500
 Finance Coordinator,Finance,Professional Staff,1,6000,8000
 Financial Accountant,Finance,Professional Staff,1,5155,9250
 Financial Analyst,Finance,Professional Staff,1,8000,12000
 First Aid,HSE,Professional Staff,1,5745,5000
-Fitter,Mechanical,Technical Operations,4,3388,4100
+Fitter,Mechanical,Technical Operations,5,3388,4100
 Foreman (Production),Production,Technical Operations,1,2808,7500
 Foreman (Mechanical),Mechanical,Technical Operations,1,4260,7500
 Forklift Operator,Mechanical,Technical Operations,2,2116,3000
 Gardener,Admin,Technical Operations,1,2000,1700
 General Helper,Admin,Technical Operations,1,1800,2000
 Head Of Finance,Finance,Leadership & Management,1,25000,30000
-Heavy Truck Driver,Production,Technical Operations,3,2844,4500
-House Keeping Attendant,Admin,Technical Operations,5,1553,1700
+Heavy Truck Driver,Production,Technical Operations,4,2844,4500
+House Keeping Attendant,Admin,Technical Operations,6,1553,1700
 House Keeping Mechanical,Mechanical,Technical Operations,1,1500,1700
 HR & ADMIN Manager,HR Administration,Leadership & Management,1,25000,20000
 HR Executive (Internal),HR Administration,Professional Staff,1,4000,8000
@@ -43,13 +43,14 @@ Hydra Operator,Mechanical,Technical Operations,1,2376,3600
 Junior Engineer (Instrum),E & I,Professional Staff,1,5840,8000
 Junior IT Help Desk Support,Information technology,Professional Staff,1,3300,7000
 Lab Technician,Quality Control,Professional Staff,2,3000,6250
-Loader Operator,Production,Technical Operations,1,1980,3100
+Loader Operator,Production,Technical Operations,2,1980,3100
 Marketing Co-Ordinator,Sales and Logistics,Professional Staff,1,5200,6500
-Mason,Production,Technical Operations,5,2216,2750
+Mason (Production),Production,Technical Operations,5,2216,2750
+Mason (Mechanical),Mechanical,Technical Operations,1,2100,2750
 Mechanic,Mechanical,Technical Operations,1,2400,4500
 MTO,Mechanical,Technical Operations,1,2865,4100
 Office Boy,Admin,Technical Operations,2,1400,2900
-Packer Operator,Mechanical,Technical Operations,11,1762,4100
+Packer Operator,Mechanical,Technical Operations,12,1762,4100
 Packing Plant Supervisor,Mechanical,Leadership & Management,1,5800,7750
 Palletizer Operator,Mechanical,Technical Operations,1,1800,2750
 Planning & Inspection Engineer,Mechanical,Professional Staff,1,12000,12500
@@ -60,9 +61,9 @@ Pump House Operator,Mechanical,Technical Operations,3,1867,3250
 Purchase Agent,Procurement,Professional Staff,1,4800,8500
 Quality Control Manager,Quality Control,Leadership & Management,1,28000,24000
 Raw Materials Supervisor,Production,Leadership & Management,1,9700,9500
-Rigger,Mechanical,Technical Operations,11,2273,3600
+Rigger,Mechanical,Technical Operations,12,2273,3600
 Sales Co-Ordinator,Sales and Logistics,Professional Staff,2,6000,6250
-Security Guard,HSE,Technical Operations,12,1762,2400
+Security Guard,HSE,Technical Operations,13,1762,2400
 Security Manager,HSE,Leadership & Management,1,14758,14500
 Security Supervisor,HSE,Leadership & Management,1,4000,7500
 Senior Sales and Logistic,Sales and Logistics,Leadership & Management,1,22800,15500
@@ -76,8 +77,9 @@ Tester / Gauger,Quality Control,Technical Operations,2,2285,5200
 Transport Incharge,Admin,Leadership & Management,1,13135,12500
 Truck Cum Shovel Operato,Production,Technical Operations,1,2800,3800
 Tyre Mechanic,Mechanical,Technical Operations,1,2000,2750
-Weigh Bridge Operator,Procurement,Technical Operations,4,2363,5000
-Welder,Mechanical,Technical Operations,7,2550,4100
+Weigh Bridge Operator (Proc),Procurement,Technical Operations,4,2363,5000
+Weigh Bridge Operator (Sales),Sales and Logistics,Technical Operations,3,2633,5000
+Welder,Mechanical,Technical Operations,8,2550,4100
 WHR Operator,Production,Technical Operations,1,4000,5000
 WHR Supervisor,Mechanical,Leadership & Management,1,5500,10000
 Engineer (Instrumentation),E & I,Professional Staff,3,5920,10750
