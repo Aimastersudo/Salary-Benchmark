@@ -16,28 +16,24 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER - With Auto Name Corrector
+# 3. TRIPLE DATABASE LOADER - With Duplicate Name Corrector
 @st.cache_data
 def load_databases():
     try:
-        # DB 1: Internal Roles
+        # Load DBs
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
-        # DB 2: Actuals Payroll
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
-        # DB 3: External Market Benchmarks
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
 
-        # Clean column spaces
+        # Clean spaces
         for df in [core_df, payroll_df, market_df]:
             df.columns = df.columns.str.strip()
 
-        # Initial cleaning of Designations
         core_df['Designation_Clean'] = core_df['Designation'].astype(str).str.strip().str.title()
         payroll_df['Designation_Clean'] = payroll_df['Designation'].astype(str).str.strip().str.title()
         market_df['Designation_Clean'] = market_df['Designation'].astype(str).str.strip().str.title()
 
-        # 🚀 THE MAGIC FIX: Auto-Translator Dictionary
-        # Payroll එකේ තියෙන කැඩිච්ච නම් ටික Core Database එකට හරියටම ගලපනවා
+        # 🚀 Fix Typographical Errors in Payroll
         name_corrector = {
             "Marketing Co-Ordinator": "Marketing Coordinator",
             "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
@@ -48,6 +44,7 @@ def load_databases():
             "Finance Co-Ordinator": "Finance Coordinator",
             "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)",
             "Junior It Help Desk Suppo": "Junior It Help Desk Support",
+            "Truck  Cum Shovel Operato": "Truck Cum Shovel Operator", # 2 spaces fix
             "Truck Cum Shovel Operato": "Truck Cum Shovel Operator",
             "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)",
             "Sales Co-Ordinator": "Sales Coordinator",
@@ -59,22 +56,32 @@ def load_databases():
             "Senior Sales And Logistic": "Senior Sales & Logistics",
             "Truck Driver - Bulker": "Truck Driver – Bulker"
         }
-        
-        # Apply the auto-corrector to the Payroll data
         payroll_df['Designation_Clean'] = payroll_df['Designation_Clean'].replace(name_corrector)
 
-        # Re-check if there are any new unmatched ones
+        # 🚀 Fix Duplicate Designations by separating them based on Department
+        # For Masons
+        core_df.loc[(core_df['Designation_Clean'] == 'Mason') & (core_df['Department'].str.contains('Production', na=False, case=False)), 'Designation_Clean'] = 'Mason (Production)'
+        core_df.loc[(core_df['Designation_Clean'] == 'Mason') & (core_df['Department'].str.contains('Mechanical', na=False, case=False)), 'Designation_Clean'] = 'Mason (Mechanical)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Mason') & (payroll_df['Department'].str.contains('Production', na=False, case=False)), 'Designation_Clean'] = 'Mason (Production)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Mason') & (payroll_df['Department'].str.contains('Mechanical', na=False, case=False)), 'Designation_Clean'] = 'Mason (Mechanical)'
+
+        # For HR Executives
+        core_df.loc[(core_df['Designation_Clean'] == 'Hr Executive') & (core_df['Department'].str.contains('External', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (External)'
+        core_df.loc[(core_df['Designation_Clean'] == 'Hr Executive') & (core_df['Department'].str.contains('HR', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (Internal)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('External', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (External)'
+        payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('HR', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (Internal)'
+
+        # Show unmatched warning
         payroll_desigs = set(payroll_df['Designation_Clean'].unique())
         core_desigs = set(core_df['Designation_Clean'].unique())
         unmatched = payroll_desigs - core_desigs
-        
         if unmatched:
             st.warning(f"⚠️ Note: The following NEW Designations in Payroll are not in Core Data yet: {', '.join(unmatched)}")
 
         # Step 1: Headcount Calculation
         hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
 
-        # Step 2: Dynamic Market Salary Calculation
+        # Step 2: Dynamic Market Salary
         def parse_salary_range(val):
             val = str(val).replace(',', '').replace('AED', '').strip()
             if val == '-' or val == '' or str(val).lower() == 'nan': return np.nan
@@ -86,26 +93,20 @@ def load_databases():
 
         ignore_cols = ['#', 'Designation', 'Designation_Clean']
         comp_cols = [c for c in market_df.columns if c not in ignore_cols]
-        
         for c in comp_cols:
             market_df[c] = market_df[c].apply(parse_salary_range)
             
         market_df['Calculated Market Salary'] = market_df[comp_cols].mean(axis=1).round(0)
         market_clean = market_df[['Designation_Clean', 'Calculated Market Salary']].dropna(subset=['Calculated Market Salary'])
 
-        # Step 3: Merge Everything Together
+        # Step 3: Merge
         merged_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
         merged_df = pd.merge(merged_df, market_clean, on='Designation_Clean', how='left')
 
-        # Clean Pioneer Salary
+        # Data Cleaning & Fallbacks
         merged_df['Your Salary (AED)'] = merged_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
-
-        # Fill NAs
         merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
-        
         merged_df['Calculated Market Salary'] = merged_df['Calculated Market Salary'].fillna(merged_df['Your Salary (AED)'])
-        
-        # Variance calculation
         merged_df['Variance %'] = ((merged_df['Your Salary (AED)'] - merged_df['Calculated Market Salary']) / merged_df['Calculated Market Salary'] * 100).round(0).astype(int)
 
         return merged_df
