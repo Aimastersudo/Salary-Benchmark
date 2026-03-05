@@ -16,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TRIPLE DATABASE LOADER - With Duplicate Name Corrector
+# 3. TRIPLE DATABASE LOADER - With Duplicate Name Corrector & Market Calculator
 @st.cache_data
 def load_databases():
     try:
@@ -33,7 +33,7 @@ def load_databases():
         payroll_df['Designation_Clean'] = payroll_df['Designation'].astype(str).str.strip().str.title()
         market_df['Designation_Clean'] = market_df['Designation'].astype(str).str.strip().str.title()
 
-        # 🚀 Fix Typographical Errors in Payroll
+        # 🚀 Fix Typographical Errors in Payroll & Market Data
         name_corrector = {
             "Marketing Co-Ordinator": "Marketing Coordinator",
             "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
@@ -51,12 +51,29 @@ def load_databases():
             "Assistant Engineer (Pro": "Assistant Engineer (Production)",
             "Chief Engineer (Mech)": "Chief Engineer (Mechanical)",
             "Senior Engineer(Technical)": "Senior Engineer (Technical)",
+            "Senior Engineer (Technical – Sales)": "Senior Engineer (Technical)",
             "Plant Co-Ordinator": "Plant Coordinator",
             "Asst.Purchase Officer": "Asst. Purchase Officer",
             "Senior Sales And Logistic": "Senior Sales & Logistics",
-            "Truck Driver - Bulker": "Truck Driver – Bulker"
+            "Truck Driver - Bulker": "Truck Driver – Bulker",
+            "Truck Driver -  Bulker": "Truck Driver – Bulker",
+            "Masons": "Mason"
         }
         payroll_df['Designation_Clean'] = payroll_df['Designation_Clean'].replace(name_corrector)
+        market_df['Designation_Clean'] = market_df['Designation_Clean'].replace(name_corrector)
+
+        # 🚀 Duplicate Market Rows for split roles (Mason & HR) so they match the Core Data
+        mason_market = market_df[market_df['Designation_Clean'] == 'Mason'].copy()
+        if not mason_market.empty:
+            mason_prod, mason_mech = mason_market.copy(), mason_market.copy()
+            mason_prod['Designation_Clean'], mason_mech['Designation_Clean'] = 'Mason (Production)', 'Mason (Mechanical)'
+            market_df = pd.concat([market_df, mason_prod, mason_mech], ignore_index=True)
+
+        hr_market = market_df[market_df['Designation_Clean'] == 'Hr Executive'].copy()
+        if not hr_market.empty:
+            hr_ext, hr_int = hr_market.copy(), hr_market.copy()
+            hr_ext['Designation_Clean'], hr_int['Designation_Clean'] = 'HR Executive (External)', 'HR Executive (Internal)'
+            market_df = pd.concat([market_df, hr_ext, hr_int], ignore_index=True)
 
         # 🚀 Fix Duplicate Designations by separating them based on Department
         # For Masons
@@ -71,17 +88,10 @@ def load_databases():
         payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('External', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (External)'
         payroll_df.loc[(payroll_df['Designation_Clean'] == 'Hr Executive') & (payroll_df['Department'].str.contains('HR', na=False, case=False)), 'Designation_Clean'] = 'HR Executive (Internal)'
 
-        # Show unmatched warning
-        payroll_desigs = set(payroll_df['Designation_Clean'].unique())
-        core_desigs = set(core_df['Designation_Clean'].unique())
-        unmatched = payroll_desigs - core_desigs
-        if unmatched:
-            st.warning(f"⚠️ Note: The following NEW Designations in Payroll are not in Core Data yet: {', '.join(unmatched)}")
-
         # Step 1: Headcount Calculation
         hc_df = payroll_df.groupby('Designation_Clean').size().reset_index(name='Live_HC')
 
-        # Step 2: Dynamic Market Salary
+        # Step 2: Dynamic Market Salary (Calculating Averages)
         def parse_salary_range(val):
             val = str(val).replace(',', '').replace('AED', '').strip()
             if val == '-' or val == '' or str(val).lower() == 'nan': return np.nan
@@ -97,7 +107,9 @@ def load_databases():
             market_df[c] = market_df[c].apply(parse_salary_range)
             
         market_df['Calculated Market Salary'] = market_df[comp_cols].mean(axis=1).round(0)
-        market_clean = market_df[['Designation_Clean', 'Calculated Market Salary']].dropna(subset=['Calculated Market Salary'])
+        
+        # Drop duplicates to prevent any row multiplying during merge
+        market_clean = market_df[['Designation_Clean', 'Calculated Market Salary']].dropna(subset=['Calculated Market Salary']).drop_duplicates(subset=['Designation_Clean'])
 
         # Step 3: Merge
         merged_df = pd.merge(core_df, hc_df, on='Designation_Clean', how='left')
@@ -106,7 +118,11 @@ def load_databases():
         # Data Cleaning & Fallbacks
         merged_df['Your Salary (AED)'] = merged_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float)
         merged_df['Live_HC'] = merged_df['Live_HC'].fillna(0).astype(int)
+        
+        # If Market Salary is not found in Market_salary.csv, fallback to internal Pioneer salary to avoid graph crash
         merged_df['Calculated Market Salary'] = merged_df['Calculated Market Salary'].fillna(merged_df['Your Salary (AED)'])
+        
+        # Variance calculation
         merged_df['Variance %'] = ((merged_df['Your Salary (AED)'] - merged_df['Calculated Market Salary']) / merged_df['Calculated Market Salary'] * 100).round(0).astype(int)
 
         return merged_df
