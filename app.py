@@ -68,7 +68,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER (100% ORIGINAL HEADCOUNT LOGIC)
+# 3. DATABASE LOADER 
 @st.cache_data
 def load_databases():
     try:
@@ -88,7 +88,7 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # 🚀 ORIGINAL DEPARTMENT SPLIT LOGIC (Restored for accurate Headcount)
+        # 🚀 ORIGINAL DEPARTMENT SPLIT LOGIC
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -124,7 +124,6 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # 🚀 HOD LOOKUP INJECTION
         core_df['Lookup_Key'] = core_df['Match_Key'].replace(HOD_MARKET_MAPPING)
         payroll_df['Lookup_Key'] = payroll_df['Match_Key'].replace(HOD_MARKET_MAPPING)
 
@@ -139,11 +138,22 @@ def load_databases():
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
         core_df['Department'] = core_df['Department'].replace(dept_fix)
 
-        payroll_df['DOJ'] = pd.to_datetime(payroll_df['Date of Joining'], errors='coerce')
+        # 🚀 TENURE & AGE CALCULATION
         today = pd.to_datetime('today')
+        payroll_df['DOJ'] = pd.to_datetime(payroll_df['Date of Joining'], errors='coerce')
         payroll_df['Tenure_Y'] = ((today - payroll_df['DOJ']).dt.days / 365.25).fillna(0).astype(int)
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
+
+        # Calculate Age from Date of Birth
+        dob_col = 'Date of Birth' if 'Date of Birth' in payroll_df.columns else ('Birthday' if 'Birthday' in payroll_df.columns else None)
+        if dob_col:
+            payroll_df['DOB_calc'] = pd.to_datetime(payroll_df[dob_col], errors='coerce')
+            payroll_df['Calculated_Age'] = ((today - payroll_df['DOB_calc']).dt.days / 365.25).fillna(0).astype(int)
+            # Replace existing Age column or create it
+            payroll_df['Age'] = payroll_df['Calculated_Age'].apply(lambda x: str(x) if x > 0 else 'N/A')
+        elif 'Age' not in payroll_df.columns:
+            payroll_df['Age'] = 'N/A'
 
         def parse_v(v):
             if pd.isna(v): return np.nan
@@ -184,7 +194,7 @@ def load_databases():
 
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_v).fillna(0).astype(int)
         
-        # 🚀 ORIGINAL 200 HEADCOUNT MERGE LOGIC (Restored 100%)
+        # 🚀 ORIGINAL 200 HEADCOUNT MERGE LOGIC
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(core_df, hc_dept, on=['Match_Key', 'Department'], how='left')
 
@@ -332,11 +342,8 @@ if df is not None:
                 fig2.update_layout(template="plotly_dark")
                 st.plotly_chart(fig2, use_container_width=True)
 
-            st.subheader("⚠️ High-Priority Adjustment List")
-            st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
-
     # ==========================================
-    # 3. PCI EMPLOYEES (New Details Added Here!)
+    # 3. PCI EMPLOYEES
     # ==========================================
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
@@ -372,10 +379,10 @@ if df is not None:
                     gap_class = 'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'
                     
                     # 🚀 SAFE DATA FETCHING FOR NEW COLUMNS
-                    e_age = ed.get('Age', 'N/A') if 'Age' in ed else 'N/A'
+                    e_age = ed.get('Age', 'N/A')
                     e_nat = ed.get('Nationality', 'N/A') if 'Nationality' in ed else 'N/A'
                     e_grd = ed.get('Grade', 'N/A') if 'Grade' in ed else 'N/A'
-                    e_dob = ed.get('Birthday', ed.get('Date of Birth', 'N/A')) if 'Birthday' in ed or 'Date of Birth' in ed else 'N/A'
+                    e_dob = ed.get('Date of Birth', ed.get('Birthday', 'N/A')) if 'Date of Birth' in ed or 'Birthday' in ed else 'N/A'
                     
                     if pd.isna(e_age): e_age = 'N/A'
                     if pd.isna(e_nat): e_nat = 'N/A'
@@ -413,11 +420,11 @@ if df is not None:
             st.divider()
             def style_status(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             
-            # 🚀 DYNAMIC TABLE COLUMNS
+            # 🚀 DYNAMIC TABLE COLUMNS WITH AGE
             disp_cols = ['Employee ID', 'Employee Name', 'Designation', 'Department']
-            for extra in ['Birthday', 'Date of Birth', 'Age', 'Nationality', 'Grade']:
+            for extra in ['Date of Birth', 'Birthday', 'Age', 'Nationality', 'Grade']:
                 if extra in f_emp.columns and extra not in disp_cols:
-                    if extra == 'Date of Birth' and 'Birthday' in f_emp.columns: continue
+                    if extra == 'Birthday' and 'Date of Birth' in f_emp.columns: continue
                     disp_cols.append(extra)
             disp_cols.extend(['Tenure_Text', 'Salary', 'Market_Avg', 'Gap %'])
             
