@@ -5,7 +5,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 from datetime import datetime
-from fpdf import FPDF
 
 # 1. Page Configuration
 st.set_page_config(page_title="Pioneer HR | Salary Intelligence", layout="wide")
@@ -20,10 +19,8 @@ st.markdown("""
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 30px; border-radius: 15px; text-align: center; font-size: 22px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 20px 0; border-left: 8px solid #3b82f6; }
     .audit-card { background-color: #1e293b; padding: 15px; border-radius: 10px; border-top: 4px solid #3b82f6; text-align: center; }
-    .method-section { background-color: #111827; border: 1px solid #1f2937; padding: 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #38bdf8; }
-    .method-header { color: #38bdf8; font-weight: bold; font-size: 20px; margin-bottom: 12px; display: block; }
-    .method-text { color: #e2e8f0; font-size: 16px; line-height: 1.7; }
-    .sub-point { color: #93c5fd; font-weight: bold; }
+    .meth-card { background-color: #111827; border: 1px solid #1f2937; padding: 20px; border-radius: 12px; height: 100%; border-top: 3px solid #38bdf8; }
+    .meth-header { color: #38bdf8; font-weight: bold; font-size: 16px; margin-bottom: 8px; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -34,6 +31,8 @@ def load_databases():
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
+        meth_df = pd.read_csv("methodology_db.csv", encoding='utf-8-sig') if os.path.exists("methodology_db.csv") else pd.DataFrame()
+
         for d in [core_df, payroll_df, market_df]: d.columns = d.columns.str.strip()
 
         def master_clean(text):
@@ -62,14 +61,8 @@ def load_databases():
         
         def get_audit_logic(idx):
             row = m_calc.loc[idx]
-            active_parts = []
-            count = 0
-            for c in comp_cols:
-                val = row[c]
-                if pd.notna(val) and val > 0:
-                    active_parts.append(f"{c}: {int(val):,}")
-                    count += 1
-            return " + ".join(active_parts) if active_parts else "N/A", count
+            active = [f"{c}: {int(row[c]):,}" for c in comp_cols if pd.notna(row[c]) and row[c] > 0]
+            return " + ".join(active), len(active)
 
         audit_data = [get_audit_logic(i) for i in range(len(m_calc))]
         market_df['Audit_Sum'], market_df['Data_Count'] = zip(*audit_data)
@@ -90,11 +83,11 @@ def load_databases():
         emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
         
-        return final_df, emp_data, comp_cols
+        return final_df, emp_data, comp_cols, meth_df
     except Exception as e:
-        st.error(f"Error: {e}"); return None, None, None
+        st.error(f"Loader Error: {e}"); return None, None, None, None
 
-df, emp_df, comp_cols = load_databases()
+df, emp_df, comp_cols, meth_db = load_databases()
 
 if df is not None:
     with st.sidebar:
@@ -108,80 +101,41 @@ if df is not None:
 
     f_df = df[df['Department'].isin(sel_depts)]; f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
-    # 🎯 1. TRANSPARENCY LAB
+    # 🎯 1. TRANSPARENCY LAB (Only English Note)
     if page == "🎯 Transparency Lab":
         st.title("🎯 Transparency Lab: Data Integrity & Methodology")
         
         roles_list = ["-- Select Designation --"] + sorted(f_df['Designation'].unique().tolist())
-        sel_role = st.selectbox("Select a Designation to view its specific audit trail:", roles_list)
+        sel_role = st.selectbox("Select a Designation to view audit trail:", roles_list)
         
         if sel_role == "-- Select Designation --":
-            # 🚀 FULL METHODOLOGY STATEMENT
-            st.markdown("""
-            <div class="ai-insight-box" style="margin-bottom:25px;">
-                <b>System Statement:</b> The Market Average Calculation Logic used in this system is <b>100% mathematically accurate</b>. 
-                Its statistical precision is optimized by normalizing raw competitor payroll data. Below is the step-by-step logic breakdown.
-            </div>
-            """, unsafe_allow_html=True)
-
-            # 1. Mathematical Accuracy
-            st.markdown("""
-            <div class="method-section">
-                <span class="method-header">1. Mathematical Accuracy (ගණිතමය නිවැරදිතාවය)</span>
-                <p class="method-text">We utilize the <b>Arithmetic Mean (මධ්‍යන්‍යය)</b> method. If data points are available from all 4 competitor companies for a specific role, 
-                the sum of these 4 values is divided by 4, ensuring 100% computational integrity and mathematical precision.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # 2. Data Cleaning
-            st.markdown("""
-            <div class="method-section">
-                <span class="method-header">2. Data Cleaning Logic (දත්ත පිරිසිදු කිරීම)</span>
-                <p class="method-text">To minimize data errors, the following safety checks are integrated into the engine:</p>
-                <p class="method-text"><span class="sub-point">• Range Normalization:</span> Market data often exists as ranges (e.g., 5,000 - 7,000). 
-                The system identifies the <b>Mid-point (Mean)</b> for a realistic average rather than using a single extreme value.</p>
-                <p class="method-text"><span class="sub-point">• Zero/Null Handling:</span> If a competitor has missing data (N/A or "-"), that entry is 
-                <b>completely excluded</b> from the denominator. This ensures the market average isn't incorrectly deflated by zeros.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # 3. Advanced Accuracy
-            st.markdown("""
-            <div class="method-section">
-                <span class="method-header">3. Advanced Accuracy Perspectives (නිරවද්‍යතාවය වැඩි කිරීම)</span>
-                <p class="method-text">Market data parity is improved by addressing company-specific variation through:</p>
-                <p class="method-text"><span class="sub-point">• Calculation Transparency:</span> Formula breakdowns are provided in real-time (e.g., <i>(Asian: 5k + JK: 7k) / 2</i>) 
-                to eliminate "black box" logic and provide auditability.</p>
-                <p class="method-text"><span class="sub-point">• Designation Standardization:</span> Our 'Master Clean' logic maps varying titles 
-                (e.g., "Admin Asst" vs "Administrative Assistant") into a single benchmarked role for accurate cross-company mapping.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # 4. Practical Reliability
-            st.markdown("""
-            <div class="method-section" style="border-left: 5px solid #22c55e;">
-                <span class="method-header">4. Practical Reliability (ප්‍රායෝගික තත්ත්වය)</span>
-                <p class="method-text"><b>Board Statement:</b> "This calculation reflects a <b>Fair Market Level</b> based on current competitor payroll data. 
-                It serves as a 100% reliable benchmark for strategic decision-making because all extreme outliers are managed through normalized mid-point aggregation."</p>
-                <hr style="border: 0.1px solid #1f2937;">
-                <p class="method-text" style="font-style: italic;"><b>Summary:</b> While raw market data may vary, our averaging method produces a decision-support 
-                output that is both statistically stable and highly trustworthy for Pioneer Cement Industries.</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="ai-insight-box"><b>Strategic Methodology:</b> The calculation logic used is mathematically robust and verified against competitor benchmarks. Below is the documentation of our data processing engine.</div>""", unsafe_allow_html=True)
             
-            st.info("💡 Please select a Designation from the dropdown above to view its real-time data audit.")
+            # Display ONLY English Note from Methodology DB
+            if not meth_db.empty:
+                cols = st.columns(2)
+                for i, row in meth_db.iterrows():
+                    with cols[i % 2]:
+                        st.markdown(f"""
+                        <div class="meth-card">
+                            <span class="meth-header">{row['Step']}. {row['Header']}</span>
+                            <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">{row['Description']}</p>
+                        </div>
+                        <br>
+                        """, unsafe_allow_html=True)
+            st.info("💡 Select a Designation from the dropdown to audit its real-time calculation.")
         
         else:
-            # SPECIFIC ROLE AUDIT (Remains the same as requested)
+            # SPECIFIC ROLE AUDIT (Standard Logic)
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.subheader(f"Audit Trail for: {sel_role}")
+            st.subheader(f"Data Audit for: {sel_role}")
             st.markdown(f"""<div class="formula-display">Market Average = ( {audit['Audit_Sum']} ) / {audit['Data_Count'] if audit['Data_Count'] > 0 else 1}</div>""", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1: st.metric("Calculated Benchmark", f"{int(audit['Market_Avg']):,} AED")
             with c2: 
                 conf = (int(audit['Data_Count'])/4)*100
-                st.metric("Confidence Level", f"{int(conf)}%", delta="High Confidence" if conf >= 75 else "Moderate")
+                st.metric("Confidence Level", f"{int(conf)}%", delta="Verified" if conf >= 75 else "Moderate")
             with c3: st.metric("Pioneer Current Pay", f"{int(audit['Your Salary (AED)']):,} AED")
 
             st.markdown("### 🔍 Raw Competitor Mid-Points")
@@ -197,9 +151,9 @@ if df is not None:
                         st.markdown(f"""<div class="audit-card" style="opacity:0.5;"><small>{c}</small><br><b style="font-size: 20px;">N/A</b><br><small>No Data</small></div>""", unsafe_allow_html=True)
 
             if comp_chart_data:
-                st.plotly_chart(px.bar(pd.DataFrame(comp_chart_data), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Competitive Spread Comparison", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(pd.DataFrame(comp_chart_data), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Competitive Market Spread", template="plotly_dark"), use_container_width=True)
 
-    # (Previous Pages Logic - Remainder of code unchanged)
+    # (Other pages Standard Logic)
     elif page == "📊 Executive Dashboard":
         st.title("Strategic Dashboard")
         st.dataframe(f_df[['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
@@ -209,13 +163,5 @@ if df is not None:
         fig.add_shape(type='line', x0=0, y0=0, x1=max(f_df['Market_Avg']), y1=max(f_df['Market_Avg']), line=dict(color='white', dash='dash'))
         fig.update_layout(template="plotly_dark"); st.plotly_chart(fig, use_container_width=True)
     elif page == "👥 PCI Employees":
-        st.title("PCI Employee Intelligence")
+        st.title("Employee Intelligence")
         st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Market_Avg']], use_container_width=True, hide_index=True)
-    elif page == "📈 Increment Planner":
-        st.title("Increment Simulator")
-        target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
-        if target:
-            data = f_emp[f_emp['Employee Name'] == target].iloc[0]
-            pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
-            new_s = int(data['Salary'] * (1 + pct/100))
-            st.metric("New Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
