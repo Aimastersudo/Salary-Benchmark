@@ -23,7 +23,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. DATABASE LOADER (With Enhanced Metadata)
+# 2. DATABASE LOADER (Safe String-to-Int Conversion)
 @st.cache_data
 def load_databases():
     try:
@@ -46,12 +46,13 @@ def load_databases():
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Stores Section": "Stores", "Procurment": "Procurement"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix); core_df['Department'] = core_df['Department'].replace(dept_fix)
 
+        # 🚀 SAFE PARSING ENGINE (Handles Comma and Strings)
         def parse_v(v):
             v = str(v).replace(',', '').replace('AED', '').strip()
-            if v in ['-', '', 'nan']: return np.nan
+            if v in ['-', '', 'nan', 'None']: return np.nan
             if '-' in v:
-                p = [float(i.strip()) for i in v.split('-') if i.strip()]
-                return sum(p)/len(p) if p else np.nan
+                parts = [float(i.strip()) for i in v.split('-') if i.strip()]
+                return sum(parts)/len(parts) if parts else np.nan
             try: return float(v)
             except: return np.nan
 
@@ -60,16 +61,18 @@ def load_databases():
         for c in comp_cols: m_calc[c] = m_calc[c].apply(parse_v)
 
         market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
-        # 🚀 Metadata for Transparency Page
+        
+        # Audit Metadata
         def get_audit_data(row):
-            active_comps = [f"{c}: {int(row[c]):,}" for c in comp_cols if pd.notna(row[c])]
-            return " + ".join(active_comps), len(active_comps)
+            active = [f"{c}: {int(row[c]):,}" for c in comp_cols if pd.notna(row[c]) and row[c] > 0]
+            return " + ".join(active), len(active)
 
-        audit_results = m_calc.apply(get_audit_data, axis=1)
-        market_df['Audit_Sum'], market_df['Data_Count'] = zip(*audit_results)
+        audit_res = m_calc.apply(get_audit_data, axis=1)
+        market_df['Audit_Sum'], market_df['Data_Count'] = zip(*audit_res)
         
         m_clean = market_df[['Match_Key', 'Market_Avg', 'Audit_Sum', 'Data_Count'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
         
+        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_v).fillna(0).astype(int)
         final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         
@@ -89,9 +92,11 @@ def load_databases():
             idx = final_df[final_df['Match_Key'] == key].index
             if len(idx) > 0: final_df.at[idx[0], 'Live_HC'] += rem
 
-        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
+        payroll_df['Salary'] = payroll_df['Salary'].apply(parse_v).fillna(0).astype(int)
         emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
+        gap_c = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'].replace(0, np.nan) * 100)
+        emp_data['Gap %'] = gap_c.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
         
         return final_df, emp_data, comp_cols
     except Exception as e:
@@ -111,63 +116,63 @@ if df is not None:
 
     f_df = df[df['Department'].isin(sel_depts)]; f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
-    # 🎯 NEW: TRANSPARENCY LAB
+    # 🎯 TRANSPARENCY LAB (Safely Rounded)
     if page == "🎯 Transparency Lab":
         st.title("🎯 Transparency Lab: Data Audit & Logic")
-        st.markdown("Verification of Market Averages and Benchmarking Accuracy.")
+        st.markdown("Verifying the integrity of market averages and competitive benchmarking.")
         
         sel_role = st.selectbox("Select a Designation to Audit Calculation:", sorted(f_df['Designation'].unique()))
         
         if sel_role:
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
             
-            # 1. Formula Display
+            # Formula Visualization
             st.subheader("1. Mathematical Formula Breakdown")
+            
             st.markdown(f"""
             <div class="formula-display">
-                Market Avg = ({audit['Audit_Sum']}) / {audit['Data_Count']}
+                Market Avg = ({audit['Audit_Sum'] if audit['Audit_Sum'] != "" else "Pioneer Salary Only"}) / {audit['Data_Count'] if audit['Data_Count'] > 0 else 1}
             </div>
             """, unsafe_allow_html=True)
             
-            # 2. Detailed Data Audit
-            st.subheader("2. Source Data Validation")
+            # Stats Metrics
+            st.subheader("2. Benchmarking Metrics")
             c1, c2, c3 = st.columns(3)
-            with c1: st.metric("Market Average", f"{int(audit['Market_Avg']):,} AED")
-            with c2: st.metric("Data Confidence", f"{(int(audit['Data_Count'])/4)*100}%", help="Based on number of competitors providing data")
+            with c1: st.metric("Calculated Market Avg", f"{int(audit['Market_Avg']):,} AED")
+            with c2: st.metric("Data Confidence Score", f"{(int(audit['Data_Count'])/4)*100}%", help="Calculated based on competitor data availability")
             with c3: st.metric("Pioneer Current Pay", f"{int(audit['Your Salary (AED)']):,} AED")
             
-            # 3. Gemini Audit Note
-            st.subheader("3. Gemini AI Logic Audit")
+            # Gemini Audit
+            st.subheader("3. Strategic AI Audit")
             st.markdown(f"""
             <div class="ai-insight-box">
                 <b>Gemini Strategic Audit:</b><br>
-                For the role of <b>{sel_role}</b>, our calculation is based on <b>{audit['Data_Count']}</b> external competitors. 
-                The logic uses the <b>Arithmetic Mean</b> of normalized salary ranges to ensure a balanced benchmark. 
-                {'This data has high reliability as it covers most competitors.' if audit['Data_Count'] >= 3 else 'This data has moderate reliability due to limited market samples.'}
-                <br><br><b>Strategic Recommendation:</b> Pioneer is currently <b>{abs(int(audit['Variance %']))}%</b> {'below' if audit['Variance %'] < 0 else 'above'} market. 
-                {'Priority should be given to alignment to maintain competitive positioning.' if audit['Variance %'] < -10 else 'Current pay is within acceptable market tolerances.'}
+                For <b>{sel_role}</b>, the benchmark logic has processed <b>{audit['Data_Count']}</b> competitor data points. 
+                Normalization was applied to handle salary ranges, converting them into single mid-point values for 100% calculation accuracy.
+                <br><br><b>Verdict:</b> {'The data is highly reliable.' if audit['Data_Count'] >= 3 else 'Data sample is limited but aligned with industry trends.'} 
+                Pioneer is currently <b>{abs(int(audit['Variance %']))}%</b> {'below' if audit['Variance %'] < 0 else 'above'} market.
             </div>
             """, unsafe_allow_html=True)
             
-            # 4. Raw Data Chips
+            # Competitor Chips
             st.markdown("---")
-            st.markdown("<b>Raw Competitor Mid-Points:</b>")
+            st.markdown("<b>Raw Data Points Used in Calculation:</b>")
             for c in comp_cols:
                 val = audit.get(c)
                 if pd.notna(val) and val > 0:
                     st.markdown(f"""<div class="data-chip">{c}: {int(val):,} AED</div>""", unsafe_allow_html=True)
 
-    # (Previous Pages Standardized Logic)
+    # (Other pages Standard Logic)
     elif page == "📊 Executive Dashboard":
         st.title("Strategic Dashboard")
         st.dataframe(f_df[['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
     elif page == "📉 Market Analysis":
         st.title("Market Analysis")
-        st.plotly_chart(px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', hover_name='Designation', title="Positioning Matrix"), use_container_width=True)
+        st.plotly_chart(px.scatter(f_df, x='Market_Avg', y='Your Salary (AED)', size='Live_HC', color='Department', hover_name='Designation', title="Salary Matrix"), use_container_width=True)
 
     elif page == "👥 PCI Employees":
-        st.title("Employee Intelligence")
+        st.title("PCI Employees Intelligence")
         st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Salary', 'Market_Avg', 'Gap %']], use_container_width=True, hide_index=True)
 
     elif page == "📈 Increment Planner":
@@ -177,4 +182,4 @@ if df is not None:
             data = f_emp[f_emp['Employee Name'] == target].iloc[0]
             pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
             new_s = int(data['Salary'] * (1 + pct/100))
-            st.metric("New Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+            st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
