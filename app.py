@@ -34,7 +34,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. ADVANCED PDF GENERATOR (Visual & Graphical Summary)
+# 2. ADVANCED PDF GENERATOR
 def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_count):
     pdf = FPDF()
     pdf.add_page()
@@ -110,7 +110,7 @@ def load_databases():
         comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Match_Key']]
         m_calc = market_df.copy()
         for c in comp_cols: m_calc[c] = m_calc[c].apply(parse_v)
-        market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0) # Keep NaN here to prevent 0 average
+        market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
         m_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
@@ -204,7 +204,7 @@ if df is not None:
             st.subheader("⚠️ High-Priority Adjustment List")
             st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
-    # 3. PCI EMPLOYEES (Interface with AI Payroll Health Check)
+    # 3. PCI EMPLOYEES
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
         if not f_emp.empty:
@@ -214,7 +214,6 @@ if df is not None:
             e3.metric("Avg. Tenure", f"{round(f_emp['Tenure_Y'].mean(), 1)} Yrs")
             e4.metric("Retention Risk", "High" if len(f_emp[f_emp['Gap %'] < -15]) > 10 else "Stable")
 
-            # 🚀 AI PAYROLL HEALTH CHECK CARD
             st.markdown(f"""
             <div class="salary-card">
                 <div class="ai-insight-box">
@@ -225,12 +224,10 @@ if df is not None:
             </div>
             """, unsafe_allow_html=True)
 
-            # Highlight Cards
             h1, h2 = st.columns(2)
             with h1: st.error(f"⚠️ Top Underpaid: {f_emp.sort_values('Gap %').iloc[0]['Employee Name']} ({int(f_emp.sort_values('Gap %').iloc[0]['Gap %'])}%)")
             with h2: st.success(f"⭐ Top Above Market: {f_emp.sort_values('Gap %', ascending=False).iloc[0]['Employee Name']} (+{int(f_emp.sort_values('Gap %', ascending=False).iloc[0]['Gap %'])}%)")
 
-            # Spotlight Profile
             sel_name = st.selectbox("Search Spotlight Profile:", sorted(f_emp['Employee Name'].unique()))
             if sel_name:
                 ed = f_emp[f_emp['Employee Name'] == sel_name].iloc[0]
@@ -271,7 +268,7 @@ if df is not None:
             c2.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b class="value-text">{f}</b></div>""", unsafe_allow_html=True)
             c3.markdown(f"""<div class="market-box"><small>Other Allowances</small><br><b class="value-text">{max(0, rem-f):,}</b></div>""", unsafe_allow_html=True)
 
-    # 5. TRANSPARENCY LAB (Added without touching core logic)
+    # 5. TRANSPARENCY LAB
     elif page == "🎯 Transparency Lab":
         st.title("🎯 Transparency Lab: Data Integrity & Methodology")
         
@@ -323,7 +320,6 @@ if df is not None:
         else:
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
             
-            # Dynamically calculate the audit trail without breaking original dataframes
             active_parts = []
             count = 0
             comp_chart_data = []
@@ -344,7 +340,7 @@ if df is not None:
             data_count = count if count > 0 else 1
             
             st.subheader(f"Audit Trail for: {sel_role}")
-                        st.markdown(f"""<div class="formula-display">Market Average = ( {audit_sum} ) / {data_count}</div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="formula-display">Market Average = ( {audit_sum} ) / {data_count}</div>""", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1: st.metric("Calculated Benchmark", f"{int(audit['Market_Avg']):,} AED")
