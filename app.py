@@ -19,7 +19,6 @@ HOD_MARKET_MAPPING = {
 # 1. Page Configuration
 st.set_page_config(page_title="Pioneer HR | Salary Intelligence", layout="wide")
 
-# CSS styles wrapped safely
 style_css = (
     "<style>"
     ".main { background-color: #0b0f19; color: #f8fafc; }"
@@ -68,7 +67,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER (100% ORIGINAL LOGIC)
+# 3. DATABASE LOADER
 @st.cache_data
 def load_databases():
     try:
@@ -88,7 +87,7 @@ def load_databases():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        # ORIGINAL DEPARTMENT SPLIT LOGIC
+        # 🚀 ORIGINAL DEPARTMENT SPLIT LOGIC
         rows = []
         for _, row in core_df.iterrows():
             dept_val = str(row['Department'])
@@ -139,11 +138,20 @@ def load_databases():
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
         core_df['Department'] = core_df['Department'].replace(dept_fix)
 
-        payroll_df['DOJ'] = pd.to_datetime(payroll_df['Date of Joining'], errors='coerce')
+        # TENURE & AGE CALCULATION
         today = pd.to_datetime('today')
+        payroll_df['DOJ'] = pd.to_datetime(payroll_df['Date of Joining'], errors='coerce')
         payroll_df['Tenure_Y'] = ((today - payroll_df['DOJ']).dt.days / 365.25).fillna(0).astype(int)
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
+
+        dob_col = 'Date of Birth' if 'Date of Birth' in payroll_df.columns else ('Birthday' if 'Birthday' in payroll_df.columns else None)
+        if dob_col:
+            payroll_df['DOB_calc'] = pd.to_datetime(payroll_df[dob_col], errors='coerce')
+            payroll_df['Calculated_Age'] = ((today - payroll_df['DOB_calc']).dt.days / 365.25).fillna(0).astype(int)
+            payroll_df['Age'] = payroll_df['Calculated_Age'].apply(lambda x: str(x) if x > 0 else 'N/A')
+        elif 'Age' not in payroll_df.columns:
+            payroll_df['Age'] = 'N/A'
 
         def parse_v(v):
             if pd.isna(v): return np.nan
@@ -162,7 +170,6 @@ def load_databases():
             
         market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
 
-        # AUDIT/FORMULA LOGIC
         def get_audit(row):
             parts = []
             cnt = 0
@@ -184,17 +191,24 @@ def load_databases():
 
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_v).fillna(0).astype(int)
         
-        # ORIGINAL 200 HEADCOUNT MERGE LOGIC
+        # 🚀 BULLETPROOF 200 HEADCOUNT LOGIC
+        # 1. First find department specific counts
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(core_df, hc_dept, on=['Match_Key', 'Department'], how='left')
-
-        hc_role = payroll_df.groupby('Match_Key').size().reset_index(name='HC_R')
-        role_counts = final_df.groupby('Match_Key').size().reset_index(name='Role_Frequency')
-
-        final_df = pd.merge(final_df, hc_role, on='Match_Key', how='left')
-        final_df = pd.merge(final_df, role_counts, on='Match_Key', how='left')
+        final_df['Live_HC'] = final_df['HC_D'].fillna(0).astype(int)
         
-        final_df['Live_HC'] = (final_df['HC_R'] / final_df['Role_Frequency']).fillna(0).round(0).astype(int)
+        # 2. Add any remaining headcount that didn't match a department perfectly
+        alloc = final_df.groupby('Match_Key')['Live_HC'].sum().reset_index(name='Allocated')
+        act = payroll_df.groupby('Match_Key').size().reset_index(name='Actual')
+        cm = pd.merge(act, alloc, on='Match_Key', how='left')
+        res = cm[cm['Actual'] > cm['Allocated'].fillna(0)]
+        
+        for _, r in res.iterrows():
+            key = r['Match_Key']
+            rem = int(r['Actual'] - r['Allocated'])
+            idx = final_df[final_df['Match_Key'] == key].index
+            if len(idx) > 0: 
+                final_df.loc[idx[0], 'Live_HC'] += rem
 
         # Merge Market Data using Lookup_Key
         final_df = pd.merge(final_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
@@ -320,7 +334,7 @@ if df is not None:
             st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 3. PCI EMPLOYEES (Safe UI Logic)
+    # 3. PCI EMPLOYEES
     # ==========================================
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
@@ -346,7 +360,6 @@ if df is not None:
                 with ca:
                     gap_class = 'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'
                     
-                    # Safe Data Fetching
                     e_age = str(ed.get('Age', 'N/A')).replace('nan', 'N/A').replace('<NA>', 'N/A')
                     e_nat = str(ed.get('Nationality', 'N/A')).replace('nan', 'N/A').replace('<NA>', 'N/A')
                     e_grd = str(ed.get('Grade', 'N/A')).replace('nan', 'N/A').replace('<NA>', 'N/A')
@@ -360,7 +373,6 @@ if df is not None:
                         except:
                             pass
 
-                    # Single line HTML to prevent syntax errors
                     profile_html = (
                         f"<div class='profile-card'>"
                         f"<h3>{ed['Employee Name']}</h3>"
@@ -391,7 +403,6 @@ if df is not None:
             st.divider()
             def style_status(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             
-            # Dynamic Columns Display
             show_cols = ['Employee ID', 'Employee Name', 'Designation', 'Department']
             opt_cols = ['Date of Birth', 'Birthday', 'Age', 'Nationality', 'Grade', 'Education Qualification', 'Education']
             for c in opt_cols:
