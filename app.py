@@ -13,8 +13,7 @@ from fpdf import FPDF
 HOD_MARKET_MAPPING = {
     "Production Incharge": "Production Manager", 
     "Chief Engineer (Mechanical)": "Mechanical Manager", 
-    "Dy. Chief Engineer (Electrical)": "Electrical Manager",
-    "First Aid": "HSE Supervisor"
+    "Dy. Chief Engineer (Electrical)": "Electrical Manager"
 }
 
 # 1. Page Configuration
