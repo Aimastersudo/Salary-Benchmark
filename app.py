@@ -18,7 +18,7 @@ st.markdown("""
     .salary-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
     .ai-insight-box { background-color: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 20px; border-radius: 12px; color: #93c5fd; font-size: 15px; line-height: 1.6; border-left: 5px solid #3b82f6; }
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .note-box { background-color: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b; padding: 15px; margin: 10px 0; border-radius: 5px; color: #fbbf24; }
+    .note-box { background-color: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 8px; color: #fbbf24; font-size: 15px; line-height: 1.5; }
     .value-text { color: #38bdf8; font-size: 18px; font-weight: bold; }
     .highlight-red { color: #ef4444; font-weight: bold; }
     .highlight-green { color: #22c55e; font-weight: bold; }
@@ -58,7 +58,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER (Safe Rounded Engine)
+# 3. DATABASE LOADER (Your 100% Original Perfect Logic)
 @st.cache_data
 def load_databases():
     try:
@@ -166,6 +166,9 @@ def load_databases():
 df, emp_df, comp_cols = load_databases()
 
 if df is not None:
+    # 🚀 Define HOD Roles Here
+    hod_roles = ["Chief Engineer (Mechanical)", "Production Incharge", "Dy. Chief Engineer (Electrical)"]
+
     with st.sidebar:
         l_path = None
         for ex in ["jpg", "png"]:
@@ -184,7 +187,9 @@ if df is not None:
 
     f_df = df[df['Department'].isin(sel_depts)]; f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
+    # ==========================================
     # 1. EXECUTIVE DASHBOARD
+    # ==========================================
     if page == "📊 Executive Dashboard":
         st.title("Strategic Salary Benchmark Dashboard")
         c1, c2, c3, c4 = st.columns(4)
@@ -202,7 +207,11 @@ if df is not None:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
             st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Insight:</b> {row['Designation']} is {abs(int(row['Variance %']))}% {'below' if row['Variance %'] < 0 else 'above'} market benchmark. Retention risk: {'High' if row['Variance %'] < -20 else 'Moderate'}.</div></div>""", unsafe_allow_html=True)
             
-            # 🚀 SAFE NaN LOGIC FOR DASHBOARD FORMULA
+            # 🚀 HOD STRATEGIC NOTE
+            if sel_role in hod_roles:
+                st.markdown(f"""<div class="note-box"><b>Strategic Context (HOD):</b> At Pioneer Cement, the <b>{sel_role}</b> functions as the Head of Department. Therefore, this designation's benchmark is explicitly mapped to the <b>Manager-level Salary</b> within the market for this department, ensuring accurate structural parity.</div>""", unsafe_allow_html=True)
+            
+            # 🚀 FORMULA LOGIC
             a_sum = row.get('Audit_Sum')
             a_sum = a_sum if pd.notna(a_sum) else "No External Data"
             d_count = row.get('Data_Count')
@@ -217,7 +226,9 @@ if df is not None:
                     if val not in ['nan','-','None','']: st.markdown(f"""<div class="market-box"><small>{c}</small><br><b class="value-text">{int(float(val)):,}</b></div>""", unsafe_allow_html=True)
                     else: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span style="color:#4b5563;">N/A</span></div>""", unsafe_allow_html=True)
 
+    # ==========================================
     # 2. MARKET ANALYSIS
+    # ==========================================
     elif page == "📉 Market Analysis":
         st.title("📊 Detailed Market Disparity Analysis")
         if not f_df.empty:
@@ -234,7 +245,9 @@ if df is not None:
             st.subheader("⚠️ High-Priority Adjustment List")
             st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
+    # ==========================================
     # 3. PCI EMPLOYEES
+    # ==========================================
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
         if not f_emp.empty:
@@ -260,12 +273,16 @@ if df is not None:
             sel_name = st.selectbox("Search Spotlight Profile:", sorted(f_emp['Employee Name'].unique()))
             if sel_name:
                 ed = f_emp[f_emp['Employee Name'] == sel_name].iloc[0]
+                
+                # 🚀 HOD STRATEGIC NOTE FOR EMPLOYEES
+                if ed['Designation'] in hod_roles:
+                    st.markdown(f"""<div class="note-box"><b>HOD Benchmarking Context:</b> Because {ed['Employee Name']} serves as the Head of Department for this unit, their salary is benchmarked directly against the <b>Manager-level Salary</b> in the market to ensure true competitive positioning.</div>""", unsafe_allow_html=True)
+
                 ca, cb = st.columns([1, 2])
                 with ca:
                     st.markdown(f"""<div class="profile-card"><h3>{ed['Employee Name']}</h3><p>ID: {ed['Employee ID']} | Tenure: {ed['Tenure_Text']}</p><p>Joined: {ed['Date of Joining']}</p><hr><p>Salary: {int(ed['Salary']):,} AED | <span class="{'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'}">Gap: {int(ed['Gap %'])}%</span></p></div>""", unsafe_allow_html=True)
                 with cb:
                     st.markdown("#### Competitor Comparison for Role")
-                    # 🚀 SAFE NaN LOGIC FOR EMPLOYEE FORMULA
                     e_sum = ed.get('Audit_Sum')
                     e_sum = e_sum if pd.notna(e_sum) else "No External Data"
                     e_count = ed.get('Data_Count')
@@ -284,7 +301,9 @@ if df is not None:
             def style_status(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Tenure_Text', 'Salary', 'Market_Avg', 'Gap %']].style.applymap(style_status, subset=['Gap %']), use_container_width=True, hide_index=True)
 
+    # ==========================================
     # 4. INCREMENT PLANNER
+    # ==========================================
     elif page == "📈 Increment Planner":
         st.title("📈 Increment Strategy Simulator")
         target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
@@ -308,7 +327,9 @@ if df is not None:
             c2.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b class="value-text">{f}</b></div>""", unsafe_allow_html=True)
             c3.markdown(f"""<div class="market-box"><small>Other Allowances</small><br><b class="value-text">{max(0, rem-f):,}</b></div>""", unsafe_allow_html=True)
 
+    # ==========================================
     # 5. TRANSPARENCY LAB
+    # ==========================================
     elif page == "🎯 Transparency Lab":
         st.title("🎯 Transparency Lab: Data Integrity & Methodology")
         
@@ -360,7 +381,10 @@ if df is not None:
         else:
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
             
-            # 🚀 SAFE NaN LOGIC FOR TRANSPARENCY LAB
+            # 🚀 HOD STRATEGIC NOTE FOR TRANSPARENCY LAB
+            if sel_role in hod_roles:
+                st.markdown(f"""<div class="note-box"><b>Strategic Methodology Override (HOD):</b> Because <b>{sel_role}</b> is mapped as the Head of Department, the raw competitor data points below explicitly reflect the <b>Manager-level</b> compensation benchmark for this engineering sector, rather than a generic engineering scale.</div>""", unsafe_allow_html=True)
+            
             t_sum = audit.get('Audit_Sum')
             t_sum = t_sum if pd.notna(t_sum) else "No External Data"
             t_count = audit.get('Data_Count')
@@ -379,11 +403,16 @@ if df is not None:
 
             st.markdown("### 🔍 Raw Competitor Mid-Points")
             chips_cols = st.columns(len(comp_cols))
+            comp_chart_data = []
             
             for i, c in enumerate(comp_cols):
                 val = str(audit.get(f"Mean_{c}", "nan"))
                 with chips_cols[i]:
                     if val not in ['nan','-','None','']:
                         st.markdown(f"""<div class="audit-card"><small>{c}</small><br><b style="color: #38bdf8; font-size: 20px;">{int(float(val)):,}</b><br><small style="color: #4ade80;">Validated ✅</small></div>""", unsafe_allow_html=True)
+                        comp_chart_data.append({"Company": c, "Salary": float(val)})
                     else:
                         st.markdown(f"""<div class="audit-card" style="opacity:0.5;"><small>{c}</small><br><b style="font-size: 20px;">N/A</b><br><small>No Data</small></div>""", unsafe_allow_html=True)
+
+            if comp_chart_data:
+                st.plotly_chart(px.bar(pd.DataFrame(comp_chart_data), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Competitive Spread Comparison", template="plotly_dark"), use_container_width=True)
