@@ -8,7 +8,7 @@ from datetime import datetime
 from fpdf import FPDF
 
 # ==========================================
-# 🚀 HOD MARKET MAPPING
+# 🚀 HOD MARKET MAPPING (Manager Upgrade)
 # ==========================================
 HOD_MARKET_MAPPING = {
     "Production Incharge": "Production Manager", 
@@ -68,7 +68,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER 
+# 3. DATABASE LOADER (100% ORIGINAL HEADCOUNT LOGIC)
 @st.cache_data
 def load_databases():
     try:
@@ -150,7 +150,6 @@ def load_databases():
         if dob_col:
             payroll_df['DOB_calc'] = pd.to_datetime(payroll_df[dob_col], errors='coerce')
             payroll_df['Calculated_Age'] = ((today - payroll_df['DOB_calc']).dt.days / 365.25).fillna(0).astype(int)
-            # Replace existing Age column or create it
             payroll_df['Age'] = payroll_df['Calculated_Age'].apply(lambda x: str(x) if x > 0 else 'N/A')
         elif 'Age' not in payroll_df.columns:
             payroll_df['Age'] = 'N/A'
@@ -172,7 +171,6 @@ def load_databases():
             
         market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
 
-        # 🚀 AUDIT/FORMULA LOGIC
         def get_audit(row):
             parts = []
             cnt = 0
@@ -343,7 +341,7 @@ if df is not None:
                 st.plotly_chart(fig2, use_container_width=True)
 
     # ==========================================
-    # 3. PCI EMPLOYEES
+    # 3. PCI EMPLOYEES (With Education Added)
     # ==========================================
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
@@ -378,23 +376,26 @@ if df is not None:
                 with ca:
                     gap_class = 'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'
                     
-                    # 🚀 SAFE DATA FETCHING FOR NEW COLUMNS
+                    # 🚀 SAFE DATA FETCHING FOR ALL NEW COLUMNS
                     e_age = ed.get('Age', 'N/A')
                     e_nat = ed.get('Nationality', 'N/A') if 'Nationality' in ed else 'N/A'
                     e_grd = ed.get('Grade', 'N/A') if 'Grade' in ed else 'N/A'
                     e_dob = ed.get('Date of Birth', ed.get('Birthday', 'N/A')) if 'Date of Birth' in ed or 'Birthday' in ed else 'N/A'
+                    e_edu = ed.get('Education Qualification', ed.get('Education', 'N/A')) if 'Education Qualification' in ed or 'Education' in ed else 'N/A'
                     
                     if pd.isna(e_age): e_age = 'N/A'
                     if pd.isna(e_nat): e_nat = 'N/A'
                     if pd.isna(e_grd): e_grd = 'N/A'
                     if pd.isna(e_dob): e_dob = 'N/A'
+                    if pd.isna(e_edu): e_edu = 'N/A'
 
                     st.markdown(f"""
                         <div class="profile-card">
                             <h3>{ed['Employee Name']}</h3>
                             <p><b>ID:</b> {ed['Employee ID']} &nbsp;|&nbsp; <b>Tenure:</b> {ed['Tenure_Text']}</p>
                             <p><b>Age:</b> {e_age} &nbsp;|&nbsp; <b>Nationality:</b> {e_nat} &nbsp;|&nbsp; <b>Grade:</b> {e_grd}</p>
-                            <p><b>DOB:</b> {e_dob} &nbsp;|&nbsp; <b>Joined:</b> {ed['Date of Joining']}</p>
+                            <p><b>DOB:</b> {e_dob} &nbsp;|&nbsp; <b>Education:</b> {e_edu}</p>
+                            <p><b>Joined:</b> {ed['Date of Joining']}</p>
                             <hr>
                             <p>Salary: {int(ed['Salary']):,} AED | <span class="{gap_class}">Gap: {int(ed['Gap %'])}%</span></p>
                         </div>
@@ -420,11 +421,12 @@ if df is not None:
             st.divider()
             def style_status(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             
-            # 🚀 DYNAMIC TABLE COLUMNS WITH AGE
+            # 🚀 DYNAMIC TABLE COLUMNS WITH EDUCATION
             disp_cols = ['Employee ID', 'Employee Name', 'Designation', 'Department']
-            for extra in ['Date of Birth', 'Birthday', 'Age', 'Nationality', 'Grade']:
+            for extra in ['Date of Birth', 'Birthday', 'Age', 'Nationality', 'Grade', 'Education Qualification', 'Education']:
                 if extra in f_emp.columns and extra not in disp_cols:
                     if extra == 'Birthday' and 'Date of Birth' in f_emp.columns: continue
+                    if extra == 'Education' and 'Education Qualification' in f_emp.columns: continue
                     disp_cols.append(extra)
             disp_cols.extend(['Tenure_Text', 'Salary', 'Market_Avg', 'Gap %'])
             
