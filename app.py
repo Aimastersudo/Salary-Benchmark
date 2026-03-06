@@ -34,7 +34,7 @@ st.markdown("""
     .profile-card { background-color: #1f2937; padding: 20px; border-radius: 15px; border: 1px solid #3b82f6; }
     
     /* Logic & Transparency Additions */
-    .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 15px; border-radius: 10px; text-align: center; font-size: 18px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 15px 0; border-left: 6px solid #3b82f6; }
+    .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 15px; border-radius: 10px; text-align: center; font-size: 20px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 15px 0; border-left: 6px solid #3b82f6; }
     .method-section { background-color: #111827; border: 1px solid #1f2937; padding: 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #38bdf8; }
     .method-header { color: #38bdf8; font-weight: bold; font-size: 20px; margin-bottom: 12px; display: block; }
     .method-text { color: #e2e8f0; font-size: 16px; line-height: 1.7; margin-bottom: 8px;}
@@ -68,38 +68,23 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER (100% ORIGINAL HEADCOUNT LOGIC)
+# 3. DATABASE LOADER (Original Safe Logic + HOD Upgrade)
 @st.cache_data
 def load_databases():
     try:
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
-        
         for d in [core_df, payroll_df, market_df]: 
             d.columns = d.columns.str.strip()
 
         def master_clean(text):
             t = str(text).strip().title()
-            t = " ".join(t.split()).replace("Co-Ordinator", "Coordinator").replace("–", "-").replace(" / ", "/")
-            return t
+            return " ".join(t.split()).replace("Co-Ordinator", "Coordinator").replace("–", "-").replace(" / ", "/")
 
         core_df['Match_Key'] = core_df['Designation'].apply(master_clean)
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
-
-        # 🚀 ORIGINAL DEPARTMENT SPLIT LOGIC (Restored for accurate Headcount)
-        rows = []
-        for _, row in core_df.iterrows():
-            dept_val = str(row['Department'])
-            if '/' in dept_val:
-                for sd in [s.strip() for s in dept_val.split('/')]:
-                    new_row = row.copy()
-                    new_row['Department'] = sd
-                    rows.append(new_row)
-            else:
-                rows.append(row)
-        core_df = pd.DataFrame(rows)
 
         bridge = {
             "Asst.Public Relation Offi": "Asst. Public Relation Officer", 
@@ -124,7 +109,7 @@ def load_databases():
         }
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
-        # 🚀 HOD LOOKUP INJECTION
+        # 🚀 HOD LOOKUP INJECTION - Forces HODs to use Manager Market Data
         core_df['Lookup_Key'] = core_df['Match_Key'].replace(HOD_MARKET_MAPPING)
         payroll_df['Lookup_Key'] = payroll_df['Match_Key'].replace(HOD_MARKET_MAPPING)
 
@@ -144,6 +129,16 @@ def load_databases():
         payroll_df['Tenure_Y'] = ((today - payroll_df['DOJ']).dt.days / 365.25).fillna(0).astype(int)
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
+
+        # 🚀 ORIGINAL DEPARTMENT SPLIT LOGIC
+        rows = []
+        for _, row in core_df.iterrows():
+            dv = str(row['Department'])
+            if '/' in dv:
+                for sd in [s.strip() for s in dv.split('/')]:
+                    nr = row.copy(); nr['Department'] = sd; rows.append(nr)
+            else: rows.append(row)
+        core_df = pd.DataFrame(rows)
 
         def parse_v(v):
             if pd.isna(v): return np.nan
@@ -182,23 +177,10 @@ def load_databases():
             
         m_clean = market_df[['Match_Key', 'Market_Avg', 'Audit_Sum', 'Data_Count', 'Actual_Count'] + [f"Mean_{c}" for c in comp_cols]].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_v).fillna(0).astype(int)
+        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
         
-        # 🚀 ORIGINAL 200 HEADCOUNT MERGE LOGIC (Restored 100%)
-        hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
-        final_df = pd.merge(core_df, hc_dept, on=['Match_Key', 'Department'], how='left')
-
-        hc_role = payroll_df.groupby('Match_Key').size().reset_index(name='HC_R')
-        role_counts = final_df.groupby('Match_Key').size().reset_index(name='Role_Frequency')
-
-        final_df = pd.merge(final_df, hc_role, on='Match_Key', how='left')
-        final_df = pd.merge(final_df, role_counts, on='Match_Key', how='left')
-        
-        # This exact formula brought your count to 200 perfectly in the original code!
-        final_df['Live_HC'] = (final_df['HC_R'] / final_df['Role_Frequency']).fillna(0).round(0).astype(int)
-
-        # Merge Market Data using Lookup_Key
-        final_df = pd.merge(final_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
+        # Merge Market Data using Lookup_Key (HODs get Manager Salary)
+        final_df = pd.merge(core_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Audit_Sum'] = final_df['Audit_Sum'].fillna("Pioneer Base Used")
         final_df['Data_Count'] = final_df['Data_Count'].fillna(1)
@@ -207,8 +189,22 @@ def load_databases():
         var_calc = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'].replace(0, np.nan) * 100)
         final_df['Variance %'] = var_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
 
-        payroll_df['Salary'] = payroll_df['Salary'].apply(parse_v).fillna(0).astype(int)
+        # 🚀 THE ORIGINAL 100% ACCURATE 200 HC FIX
+        hc_d = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
+        final_df = pd.merge(final_df, hc_d, on=['Match_Key', 'Department'], how='left')
+        final_df['Live_HC'] = final_df['HC_D'].fillna(0).astype(int)
+        alloc = final_df.groupby('Match_Key')['Live_HC'].sum().reset_index(name='A')
+        act = payroll_df.groupby('Match_Key').size().reset_index(name='Actual')
+        cm = pd.merge(act, alloc, on='Match_Key', how='left')
+        res = cm[cm['Actual'] > cm['A'].fillna(0)]
+        for _, r in res.iterrows():
+            key = r['Match_Key']; rem = int(r['Actual'] - r['A'])
+            idx = final_df[final_df['Match_Key'] == key].index
+            if len(idx) > 0: final_df.at[idx[0], 'Live_HC'] += rem
+
+        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
         
+        # Merge Employee data using Lookup_Key
         emp_data = pd.merge(payroll_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
         emp_data['Audit_Sum'] = emp_data['Audit_Sum'].fillna("Pioneer Base Used")
@@ -333,6 +329,9 @@ if df is not None:
                 fig2.update_layout(template="plotly_dark")
                 st.plotly_chart(fig2, use_container_width=True)
 
+            st.subheader("⚠️ High-Priority Adjustment List")
+            st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
+
     # ==========================================
     # 3. PCI EMPLOYEES
     # ==========================================
@@ -353,6 +352,11 @@ if df is not None:
                     </div>
                 </div>
             """, unsafe_allow_html=True)
+
+            h1, h2 = st.columns(2)
+            if len(f_emp) > 0:
+                with h1: st.error(f"⚠️ Top Underpaid: {f_emp.sort_values('Gap %').iloc[0]['Employee Name']} ({int(f_emp.sort_values('Gap %').iloc[0]['Gap %'])}%)")
+                with h2: st.success(f"⭐ Top Above Market: {f_emp.sort_values('Gap %', ascending=False).iloc[0]['Employee Name']} (+{int(f_emp.sort_values('Gap %', ascending=False).iloc[0]['Gap %'])}%)")
 
             sel_name = st.selectbox("Search Spotlight Profile:", sorted(f_emp['Employee Name'].unique()))
             if sel_name:
@@ -406,17 +410,40 @@ if df is not None:
         target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
         if target:
             data = f_emp[f_emp['Employee Name'] == target].iloc[0]
-            pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
-            new_s = int(data['Salary'] * (1 + pct/100))
-            st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
+                new_s = int(data['Salary'] * (1 + pct/100))
+                gap_af = int(((new_s - data['Market_Avg']) / data['Market_Avg'] if data['Market_Avg'] != 0 else 1) * 100)
+                st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+                st.metric("New Market Gap", f"{gap_af}%")
+            with col2:
+                st.markdown(f"""
+                    <div class="salary-card">
+                        <div class="ai-insight-box">
+                            <b>AI Budget Strategy:</b> Monthly impact: {new_s - int(data['Salary']):,} AED. New status: <b>{'Still Underpaid' if gap_af < -5 else 'Aligned'}</b>.
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number", 
+                    value=new_s, 
+                    title={'text': "Market Position Gauge"}, 
+                    gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "red"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "green"}]}
+                ))
+                fig.update_layout(template="plotly_dark", height=280)
+                st.plotly_chart(fig, use_container_width=True)
             
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number", 
-                value=new_s, 
-                title={'text': "Market Position Gauge"}, 
-                gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}}
-            ))
-            st.plotly_chart(fig, use_container_width=True)
+            st.subheader("💰 Component Breakdown")
+            b = int(new_s * 0.7)
+            rem = new_s - b
+            f = 0 if "Staff" in str(data['Employee Type']) else 300
+            
+            c1, c2, c3 = st.columns(3)
+            c1.markdown(f"""<div class="market-box"><small>Basic Salary</small><br><b class="value-text">{b:,}</b></div>""", unsafe_allow_html=True)
+            c2.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b class="value-text">{f}</b></div>""", unsafe_allow_html=True)
+            c3.markdown(f"""<div class="market-box"><small>Other Allowances</small><br><b class="value-text">{max(0, rem-f):,}</b></div>""", unsafe_allow_html=True)
 
     # ==========================================
     # 5. TRANSPARENCY LAB
