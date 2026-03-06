@@ -29,12 +29,11 @@ def apply_custom_css():
         """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. CORE DATA ENGINE (Centralized Database)
+# 2. CORE DATA ENGINE
 # ==========================================
 @st.cache_data
 def load_all_data():
     try:
-        # Load Raw Files
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
@@ -42,7 +41,6 @@ def load_all_data():
 
         for d in [core_df, payroll_df, market_df]: d.columns = d.columns.str.strip()
 
-        # Helper: Clean Titles
         def clean_t(t):
             res = str(t).strip().title()
             return " ".join(res.split()).replace("Co-Ordinator", "Coordinator").replace("–", "-").replace(" / ", "/")
@@ -51,7 +49,6 @@ def load_all_data():
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(clean_t)
         market_df['Match_Key'] = market_df['Designation'].apply(clean_t)
 
-        # Helper: Parse Salaries
         def parse_s(s):
             if pd.isna(s): return np.nan
             s = str(s).replace(',', '').replace('AED', '').strip()
@@ -62,14 +59,12 @@ def load_all_data():
             try: return float(s)
             except: return np.nan
 
-        # Process Market Data
         comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Match_Key']]
         m_calc = market_df.copy()
         for c in comp_cols: m_calc[c] = m_calc[c].apply(parse_s)
         
         market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
         
-        # Audit Trail Metadata
         def get_logic(idx):
             row = m_calc.loc[idx]
             parts = [f"{c}: {int(row[c]):,}" for c in comp_cols if pd.notna(row[c]) and row[c] > 0]
@@ -81,7 +76,6 @@ def load_all_data():
 
         m_clean = market_df[['Match_Key', 'Market_Avg', 'Audit_Sum', 'Data_Count'] + [f"Mean_{c}" for c in comp_cols]].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        # Final Merge
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_s).fillna(0).astype(int)
         final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
@@ -89,12 +83,10 @@ def load_all_data():
         v_calc = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'].replace(0, np.nan) * 100)
         final_df['Variance %'] = v_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
 
-        # Headcount 200 Fix
         hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
         final_df = pd.merge(final_df, hc_dept, on=['Match_Key', 'Department'], how='left')
         final_df['Live_HC'] = final_df['HC_D'].fillna(0).astype(int)
 
-        # Employee Analytics Data
         payroll_df['Salary'] = payroll_df['Salary'].apply(parse_s).fillna(0).astype(int)
         emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
