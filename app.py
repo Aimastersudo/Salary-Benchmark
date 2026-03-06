@@ -7,15 +7,6 @@ import os
 from datetime import datetime
 from fpdf import FPDF
 
-# ==========================================
-# 🚀 HOD MARKET MAPPING (Manager Upgrade)
-# ==========================================
-HOD_MARKET_MAPPING = {
-    "Production Incharge": "Production Manager", 
-    "Chief Engineer (Mechanical)": "Mechanical Manager", 
-    "Dy. Chief Engineer (Electrical)": "Electrical Manager" 
-}
-
 # 1. Page Configuration
 st.set_page_config(page_title="Pioneer HR | Salary Intelligence", layout="wide")
 
@@ -68,68 +59,86 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER
+# 3. DATABASE LOADER (100% ORIGINAL WITH HOD INJECTION)
 @st.cache_data
 def load_databases():
     try:
         core_df = pd.read_csv("salary_data.csv", encoding='utf-8-sig')
         payroll_df = pd.read_csv("actuals_payroll.csv", encoding='utf-8-sig')
         market_df = pd.read_csv("Market_salary.csv", encoding='utf-8-sig')
-        for d in [core_df, payroll_df, market_df]: 
-            d.columns = d.columns.str.strip()
+        
+        core_df.columns = core_df.columns.str.strip()
+        payroll_df.columns = payroll_df.columns.str.strip()
+        market_df.columns = market_df.columns.str.strip()
 
+        # Cleanup
         def master_clean(text):
             t = str(text).strip().title()
-            return " ".join(t.split()).replace("Co-Ordinator", "Coordinator").replace("–", "-").replace(" / ", "/")
+            t = " ".join(t.split())
+            t = t.replace("Co-Ordinator", "Coordinator")
+            t = t.replace("–", "-").replace(" / ", "/")
+            return t
 
         core_df['Match_Key'] = core_df['Designation'].apply(master_clean)
         payroll_df['Match_Key'] = payroll_df['Designation'].apply(master_clean)
         market_df['Match_Key'] = market_df['Designation'].apply(master_clean)
 
-        bridge = {
-            "Asst.Public Relation Offi": "Asst. Public Relation Officer", 
-            "Asst.External Relationship Manager": "Asst. External Relationship Manager", 
-            "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)", 
-            "Truck Cum Shovel Operato": "Truck Cum Shovel Operator", 
-            "Junior It Help Desk Suppo": "Junior It Help Desk Support", 
-            "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)", 
-            "Assistant Engineer (Pro": "Assistant Engineer (Production)", 
-            "Chief Engineer (Mech)": "Chief Engineer (Mechanical)", 
-            "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)", 
-            "Senior Engineer(Technical)": "Senior Engineer (Technical)", 
-            "Finance Co-Ordinator": "Finance Coordinator", 
-            "Marketing Co-Ordinator": "Marketing Coordinator", 
-            "Plant Co-Ordinator": "Plant Coordinator", 
-            "Sales Co-Ordinator": "Sales Coordinator", 
-            "Senior Sales And Logistic": "Senior Sales & Logistics", 
-            "Asst.Security Manager": "Asst. Security Manager", 
-            "Asst.Purchase Officer": "Asst. Purchase Officer", 
-            "Truck Driver - Bulker": "Truck Driver - Bulker", 
+        # 🚀 DEPARTMENT SPLIT (Fixed "Mechanical / Production" issue)
+        rows = []
+        for _, row in core_df.iterrows():
+            dept_val = str(row['Department'])
+            if '/' in dept_val:
+                for sd in [s.strip() for s in dept_val.split('/')]:
+                    new_row = row.copy()
+                    new_row['Department'] = sd
+                    rows.append(new_row)
+            else:
+                rows.append(row)
+        core_df = pd.DataFrame(rows)
+
+        # Bridge
+        master_bridge = {
+            "Asst.Public Relation Offi": "Asst. Public Relation Officer",
+            "Asst.External Relationship Manager": "Asst. External Relationship Manager",
+            "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)",
+            "Truck Cum Shovel Operato": "Truck Cum Shovel Operator",
+            "Junior It Help Desk Suppo": "Junior It Help Desk Support",
+            "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)",
+            "Assistant Engineer (Pro": "Assistant Engineer (Production)",
+            "Chief Engineer (Mech)": "Chief Engineer (Mechanical)",
+            "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)",
+            "Senior Engineer(Technical)": "Senior Engineer (Technical)",
+            "Finance Co-Ordinator": "Finance Coordinator",
+            "Marketing Co-Ordinator": "Marketing Coordinator",
+            "Plant Co-Ordinator": "Plant Coordinator",
+            "Sales Co-Ordinator": "Sales Coordinator",
+            "Senior Sales And Logistic": "Senior Sales & Logistics",
+            "Asst.Security Manager": "Asst. Security Manager",
+            "Asst.Purchase Officer": "Asst. Purchase Officer",
+            "Truck Driver - Bulker": "Truck Driver - Bulker",
             "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"
         }
-        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
+        payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(master_bridge)
 
-        # 🚀 HOD LOOKUP INJECTION - Forces HODs to use Manager Market Data
-        core_df['Lookup_Key'] = core_df['Match_Key'].replace(HOD_MARKET_MAPPING)
-        payroll_df['Lookup_Key'] = payroll_df['Match_Key'].replace(HOD_MARKET_MAPPING)
-
+        # Dept Fix
         dept_fix = {
             "HR Administration": "HR", 
             "Information technology": "IT", 
             "Quality Control": "QC", 
             "Sales and Logistics": "Sales & Logistics", 
-            "Stores Section": "Stores", 
             "Procurment": "Procurement"
         }
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix)
-        core_df['Department'] = core_df['Department'].replace(dept_fix)
+        core_df['Department'] = core_df['Department'].replace({"Procurment": "Procurement", "Sales & Logistics": "Sales & Logistics"})
 
+        # Tenure
         payroll_df['DOJ'] = pd.to_datetime(payroll_df['Date of Joining'], errors='coerce')
         today = pd.to_datetime('today')
         payroll_df['Tenure_Y'] = ((today - payroll_df['DOJ']).dt.days / 365.25).fillna(0).astype(int)
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
 
+        # Market Parsing
         def parse_v(v):
             if pd.isna(v): return np.nan
             v = str(v).replace(',', '').replace('AED', '').strip()
@@ -142,12 +151,10 @@ def load_databases():
 
         comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Match_Key']]
         m_calc = market_df.copy()
-        for c in comp_cols: 
-            m_calc[c] = m_calc[c].apply(parse_v)
-            
+        for c in comp_cols: m_calc[c] = m_calc[c].apply(parse_v)
         market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
 
-        # 🚀 EMBEDDED AUDIT/FORMULA LOGIC
+        # Audit Logic
         def get_audit(row):
             parts = []
             cnt = 0
@@ -161,16 +168,39 @@ def load_databases():
         market_df['Audit_Sum'] = [x[0] for x in audit_res]
         market_df['Data_Count'] = [x[1] for x in audit_res]
         market_df['Actual_Count'] = [x[2] for x in audit_res]
+        for c in comp_cols: market_df[f"Mean_{c}"] = m_calc[c]
         
-        for c in comp_cols: 
-            market_df[f"Mean_{c}"] = m_calc[c]
-            
         m_clean = market_df[['Match_Key', 'Market_Avg', 'Audit_Sum', 'Data_Count', 'Actual_Count'] + [f"Mean_{c}" for c in comp_cols]].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
-        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].apply(parse_v).fillna(0).astype(int)
+        # 🚀 HOD INJECTION (This guarantees the 3 HODs get Manager Salaries)
+        hod_map = {
+            "Chief Engineer (Mechanical)": "Mechanical Manager",
+            "Production Incharge": "Production Manager",
+            "Dy. Chief Engineer (Electrical)": "Electrical Manager"
+        }
+        for hod_role, mgr_role in hod_map.items():
+            mgr_data = m_clean[m_clean['Match_Key'] == mgr_role]
+            if not mgr_data.empty:
+                new_row = mgr_data.iloc[0].copy()
+                new_row['Match_Key'] = hod_role
+                m_clean = m_clean[m_clean['Match_Key'] != hod_role]
+                m_clean = pd.concat([m_clean, pd.DataFrame([new_row])], ignore_index=True)
+
+        core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
         
-        # Merge using Lookup_Key so HODs get Manager Salary
-        final_df = pd.merge(core_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
+        # Original Headcount Logic (100% untouched)
+        hc_dept = payroll_df.groupby(['Match_Key', 'Department']).size().reset_index(name='HC_D')
+        final_df = pd.merge(core_df, hc_dept, on=['Match_Key', 'Department'], how='left')
+
+        hc_role = payroll_df.groupby('Match_Key').size().reset_index(name='HC_R')
+        role_counts = final_df.groupby('Match_Key').size().reset_index(name='Role_Frequency')
+
+        final_df = pd.merge(final_df, hc_role, on='Match_Key', how='left')
+        final_df = pd.merge(final_df, role_counts, on='Match_Key', how='left')
+        final_df['Live_HC'] = (final_df['HC_R'] / final_df['Role_Frequency']).fillna(0).round(0).astype(int)
+
+        # Merge with injected market data
+        final_df = pd.merge(final_df, m_clean, on='Match_Key', how='left')
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         final_df['Audit_Sum'] = final_df['Audit_Sum'].fillna("Pioneer Base Used")
         final_df['Data_Count'] = final_df['Data_Count'].fillna(1)
@@ -179,27 +209,17 @@ def load_databases():
         var_calc = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'].replace(0, np.nan) * 100)
         final_df['Variance %'] = var_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
 
-        # 🚀 BULLETPROOF 200 HC FIX
-        final_df['Live_HC'] = 0
-        act_counts = payroll_df['Match_Key'].value_counts()
-        for key, count in act_counts.items():
-            idx = final_df[final_df['Match_Key'] == key].index
-            if len(idx) > 0:
-                final_df.loc[idx[0], 'Live_HC'] = count
-
-        payroll_df['Salary'] = payroll_df['Salary'].apply(parse_v).fillna(0).astype(int)
-        
-        # Merge Employee data using Lookup_Key
-        emp_data = pd.merge(payroll_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
+        payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
+        emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
         emp_data['Audit_Sum'] = emp_data['Audit_Sum'].fillna("Pioneer Base Used")
         emp_data['Data_Count'] = emp_data['Data_Count'].fillna(1)
-        
         gap_c = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'].replace(0, np.nan) * 100)
         emp_data['Gap %'] = gap_c.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
+        emp_data['Gap (AED)'] = (emp_data['Salary'] - emp_data['Market_Avg']).astype(int)
+        
         t_map = dict(zip(core_df['Match_Key'], core_df['Employee Type']))
         emp_data['Employee Type'] = emp_data['Match_Key'].map(t_map).fillna("Worker")
-        
         return final_df, emp_data, comp_cols
     except Exception as e:
         st.error(f"Logic Engine Error: {e}")
@@ -208,6 +228,9 @@ def load_databases():
 df, emp_df, comp_cols = load_databases()
 
 if df is not None:
+    # Roles to show special HOD Note
+    hod_roles_list = ["Chief Engineer (Mechanical)", "Production Incharge", "Dy. Chief Engineer (Electrical)"]
+
     with st.sidebar:
         l_path = None
         for ex in ["jpg", "png"]:
@@ -264,10 +287,10 @@ if df is not None:
                 </div>
             """, unsafe_allow_html=True)
             
-            if row['Match_Key'] in HOD_MARKET_MAPPING.keys():
+            if row['Match_Key'] in hod_roles_list:
                 st.markdown(f"""
                     <div class="note-box">
-                        <b>Strategic Context (HOD):</b> At Pioneer Cement, the <b>{sel_role}</b> functions as the Head of Department. Therefore, this designation's benchmark is explicitly mapped to the <b>{HOD_MARKET_MAPPING[row['Match_Key']]}</b> within the market for accurate structural parity.
+                        <b>Strategic Context (HOD):</b> At Pioneer Cement, the <b>{sel_role}</b> functions as the Head of Department. Therefore, this designation's benchmark is explicitly mapped to the <b>Manager-level Salary</b> within the market for accurate structural parity.
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -339,10 +362,10 @@ if df is not None:
             if sel_name:
                 ed = f_emp[f_emp['Employee Name'] == sel_name].iloc[0]
                 
-                if ed['Match_Key'] in HOD_MARKET_MAPPING.keys():
+                if ed['Match_Key'] in hod_roles_list:
                     st.markdown(f"""
                         <div class="note-box">
-                            <b>HOD Benchmarking Context:</b> Because {ed['Employee Name']} serves as the Head of Department, their salary is benchmarked directly against the <b>{HOD_MARKET_MAPPING[ed['Match_Key']]}</b> in the market to ensure true competitive positioning.
+                            <b>HOD Benchmarking Context:</b> Because {ed['Employee Name']} serves as the Head of Department, their salary is benchmarked directly against the <b>Manager-level Salary</b> in the market to ensure true competitive positioning.
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -387,17 +410,40 @@ if df is not None:
         target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
         if target:
             data = f_emp[f_emp['Employee Name'] == target].iloc[0]
-            pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
-            new_s = int(data['Salary'] * (1 + pct/100))
-            st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
+                new_s = int(data['Salary'] * (1 + pct/100))
+                gap_af = int(((new_s - data['Market_Avg']) / data['Market_Avg'] if data['Market_Avg'] != 0 else 1) * 100)
+                st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+                st.metric("New Market Gap", f"{gap_af}%")
+            with col2:
+                st.markdown(f"""
+                    <div class="salary-card">
+                        <div class="ai-insight-box">
+                            <b>AI Budget Strategy:</b> Monthly impact: {new_s - int(data['Salary']):,} AED. New status: <b>{'Still Underpaid' if gap_af < -5 else 'Aligned'}</b>.
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number", 
+                    value=new_s, 
+                    title={'text': "Market Position Gauge"}, 
+                    gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "red"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "green"}]}
+                ))
+                fig.update_layout(template="plotly_dark", height=280)
+                st.plotly_chart(fig, use_container_width=True)
             
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number", 
-                value=new_s, 
-                title={'text': "Market Position Gauge"}, 
-                gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}}
-            ))
-            st.plotly_chart(fig, use_container_width=True)
+            st.subheader("💰 Component Breakdown")
+            b = int(new_s * 0.7)
+            rem = new_s - b
+            f = 0 if "Staff" in str(data['Employee Type']) else 300
+            
+            c1, c2, c3 = st.columns(3)
+            c1.markdown(f"""<div class="market-box"><small>Basic Salary</small><br><b class="value-text">{b:,}</b></div>""", unsafe_allow_html=True)
+            c2.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b class="value-text">{f}</b></div>""", unsafe_allow_html=True)
+            c3.markdown(f"""<div class="market-box"><small>Other Allowances</small><br><b class="value-text">{max(0, rem-f):,}</b></div>""", unsafe_allow_html=True)
 
     # ==========================================
     # 5. TRANSPARENCY LAB
@@ -409,6 +455,7 @@ if df is not None:
         sel_role = st.selectbox("Select a Designation to view its specific audit trail:", roles_list)
         
         if sel_role == "-- Select Designation --":
+            
             st.markdown("""
                 <div class="ai-insight-box" style="margin-bottom:25px;">
                     <b>System Statement:</b> The Market Average Calculation Logic used in this system is <b>100% mathematically accurate</b>. Below is the step-by-step logic breakdown.
@@ -439,10 +486,10 @@ if df is not None:
         else:
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
             
-            if audit['Match_Key'] in HOD_MARKET_MAPPING.keys():
+            if audit['Match_Key'] in hod_roles_list:
                 st.markdown(f"""
                     <div class="note-box">
-                        <b>Strategic Methodology Override (HOD):</b> Because <b>{sel_role}</b> is mapped as the Head of Department, the raw competitor data points below explicitly reflect the <b>{HOD_MARKET_MAPPING[audit['Match_Key']]}</b> compensation benchmark.
+                        <b>Strategic Methodology Override (HOD):</b> Because <b>{sel_role}</b> is mapped as the Head of Department, the raw competitor data points below explicitly reflect the <b>Manager-level</b> compensation benchmark.
                     </div>
                 """, unsafe_allow_html=True)
             
