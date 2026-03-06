@@ -1,0 +1,201 @@
+﻿Employee ID,Employee Name,Designation,Department,Date of Joining, Salary ,Date of Birth,Nationality,Grade
+50002,Venkata Subba Reddy  Metta,Weigh Bridge Operator,Procurement,18-Oct-04,"3,200.00",14/08/1979,India,GRADE12S
+50006,Ajit  Kumar,Forklift Operator,Mechanical,03-Jan-05,"2,231.00",08/01/1984,India,GRADE 11
+50012,Palakondaiah  Gopineni,Packer Operator,Mechanical,11-Apr-05,"1,931.00",20/12/1978,India,GRADE 10
+50016,Subbaiah  Anupalli,House Keeping Attendant,Admin,26-Apr-05,"1,873.00",15/10/1978,India,GRADE 10
+50017,Vijayashekhar  Nagushetty,Attendant,Production,26-Apr-05,"2,010.00",20/12/1977,India,GRADE 11
+50019,Venkata Subba Reddy  Potteti,Attendant,Production,30-Apr-05,"2,010.00",25/10/1968,India,GRADE 11
+50024,Jose  Thariyan,Welder,Mechanical,06-Oct-06,"2,669.00",01/11/1977,India,GRADE12W
+50029,Niyazuddin  Mohammed,Dy.Chief Engineer(Mech),Mechanical,07-Dec-05,"9,189.00",22/06/1977,India,GRADE 17
+50036,Easwara Reddy  Pulluru,Financial Analyst,Finance,19-Sep-05,"8,000.00",15/04/1977,India,GRADE 16
+50037,Khadaraiah  Kalluru,Financial Accountant,Finance,19-Sep-05,"5,155.00",15/06/1980,India,GRADE 14
+50043,Ayyavaru Reddy  Gangireddy,Dy.Chief Engineer(Mech),Mechanical,18-Dec-05,"9,204.00",01/05/1973,India,GRADE 17
+50050,Jitesh Kumar  Pattarumadathil,Cook,Admin,05-Feb-06,"2,352.00",10/04/1977,India,GRADE 11
+50051,Govardhan Reddy  Bathula,Assistant Engineer (Mech),Mechanical,14-Feb-06,"6,359.00",11/08/1978,India,GRADE 14
+50052,Ravi Kumar Reddy  Machireddy,Engineer (Instrumentation),E & I,14-Feb-06,"5,985.00",08/01/1982,India,GRADE 15
+50053,Saji  Varughese,Marketing Co-Ordinator,Sales and Logistics,15-Feb-06,"5,200.00",02/05/1965,India,GRADE 14
+50054,Kuma  Venkata Ramakrishna Rao Kommanti,Chief Engineer (Mech),Mechanical,20-Mar-06,"14,685.00",26/07/1969,India,GRADE 18
+50056,Venkata Suryanaryana Raju  Gottimukkala,Dy.Chief Engineer(Electri,E & I,20-Mar-06,"8,500.00",04/10/1970,India,GRADE 17
+50059,Rajeev Kumar  Mishra,Engineer (Instrumentation),E & I,02-Apr-06,"6,275.00",13/04/1980,India,GRADE 15
+50061,Sadar Ayub  Khan,Driver,Admin,14-Jun-06,"2,934.00",01/01/1976,Pakistan,GRADE12W
+50063,Purushottam  Visinigiri,Technician,E & I,11-Mar-06,"2,945.00",30/08/1979,India,GRADE12W
+50082,Jaya Ram  Thallapaka,Packer Operator,Mechanical,05-Sep-06,"1,931.00",12/05/1982,India,GRADE 10
+50084,Jaya Presad  Puzhiyil Puthilon Kunnat,Welder,Mechanical,05-Sep-06,"2,669.00",01/05/1965,India,GRADE12W
+50085,Kadiraiah  Saginala,Attendant,Production,05-Sep-06,"1,957.00",15/10/1976,India,GRADE 10
+50089,Dharmendra  Pandey,Rigger,Mechanical,06-Sep-06,"2,340.00",06/08/1972,India,GRADE 11
+50090,Dinanath  Paswan,MTO,Mechanical,06-Sep-06,"2,865.00",12/02/1972,India,GRADE12W
+50091,Rama Mohana Rao  Bokka,sample Boy,Quality Control,07-Sep-06,"2,049.00",18/03/1969,India,GRADE 11
+50096,Jalaludheen  Marakkanamgott,Rigger,Mechanical,13-Sep-06,"2,340.00",02/04/1982,India,GRADE 11
+50097,Suresh Kumar  Viswandhan Pillai,Welder,Mechanical,13-Sep-06,"2,669.00",30/05/1967,India,GRADE12W
+50098,Pir  Muhammad,Heavy Truck Driver,Production,14-Sep-06,"3,552.00",01/01/1963,Pakistan,GRADE12W
+50100,Kasi  Dunaboyina,Packer Operator,Mechanical,16-Sep-06,"2,188.00",11/06/1981,India,GRADE 11
+50104,Johnson  Eluvathingal Thoman,Rigger,Mechanical,16-Sep-06,"2,340.00",15/05/1975,India,GRADE 11
+50105,Surukumar  Raghavan,Welder,Mechanical,16-Sep-06,"2,669.00",17/05/1976,India,GRADE12W
+50110,Sushil Kumar  Swain,Hydra Operator,Mechanical,23-Sep-06,"2,376.00",16/06/1982,India,GRADE 11
+50117,Ambareswar Reddy  Putha,Tester / Gauger,Quality Control,28-Sep-06,"3,070.00",06/06/1986,India,GRADE12S
+50120,Pushpa Karan  Athrapulikkal,Fitter,Mechanical,02-Oct-06,"3,175.00",01/04/1967,India,GRADE12W
+50123,Narayanan Rajeevan  Mamparakizakkethil,Fitter,Mechanical,04-Oct-06,"3,175.00",15/06/1962,India,GRADE12W
+50126,Mohammad Atiullah  Ansari,Rigger,Mechanical,07-Oct-06,"2,340.00",01/01/1977,India,GRADE 11
+50127,Rajesh Kumar  Kushwaha,Rigger,Mechanical,07-Oct-06,"2,340.00",18/11/1980,India,GRADE 11
+50129,Tony  Thomas,DEPUTY HR MANAGER,HR Administration,15-Oct-06,"9,500.00",17/03/1984,India,GRADE 17
+50150,Ayyappa  Puttavala,Assistant Engineer (Pro,Production,20-Nov-06,"3,813.00",26/07/1981,India,GRADE 14
+50153,Satheesh  Kothapally,Chemist,Quality Control,20-Nov-06,"5,500.00",10/02/1981,India,GRADE 15
+50156,Venkataramana  Giddaluru,Attendant,Production,20-Nov-06,"2,196.00",30/06/1974,India,GRADE 11
+50158,Rama Subba Reddy  Paturi,Foreman,Production,28-Sep-06,"2,808.00",01/07/1971,India,GRADE12S
+50161,Presannan  Edasserithara Sivaraman,Rigger,Mechanical,12-Dec-06,"2,425.00",28/05/1965,India,GRADE 11
+50164,Raj Mohan  Giri,Mason,Production,23-Dec-06,"2,313.00",01/03/1983,India,GRADE 11
+50165,Vijay Shanker  Puri,Mason,Production,23-Dec-06,"2,313.00",14/08/1972,India,GRADE 11
+50169,Matrika  Sitaula,Security Guard,HSE,13-Jan-07,"1,823.00",18/01/1972,Nepal,GRADE 10
+50170,Bhagwan  Shah,Attendant,Production,20-Jan-07,"2,160.00",13/10/1969,India,GRADE 11
+50172,Rajesh Kumar  Yadav,Pump House Operator,Mechanical,20-Jan-07,"2,400.00",15/11/1983,India,GRADE 11
+50174,Manivel  Sarvanam,Mason,Production,21-Jan-07,"2,556.00",10/05/1964,India,GRADE12W
+50176,Bhanu Pratap  Singh,Rigger,Mechanical,12-Feb-07,"2,425.00",05/06/1977,India,GRADE 11
+50180,Yugandar  Perabathula,Electrician,E & I,03-Mar-07,"2,623.00",12/01/1983,India,GRADE12W
+50181,Srinivas  Boppana,Junior Engineer ( Instrum,E & I,04-Mar-07,"5,840.00",10/12/1968,India,GRADE 15
+50187,Sagar Nath  Baral,Security Guard,HSE,24-Mar-07,"1,823.00",16/07/1969,Nepal,GRADE 10
+50188,Mouza Ali Rubayyea H.  Al Mazrouei,Finance Co-Ordinator,Finance,02-Apr-07,"6,000.00",21/04/1980,United Arab Emirates,GRADE 15
+50189,Wedad  Saif Shames,Sales Co-Ordinator,Sales and Logistics,02-Apr-07,"6,000.00",26/10/1985,United Arab Emirates,GRADE 14
+50194,Rajeshmon  Kinattumkal Narayanan,First Aid,HSE,07-Jul-07,"5,745.00",10/05/1974,India,GRADE 15
+50195,Muhammad  Hilal,Purchase Agent,Procurement,09-Jul-07,"4,800.00",01/01/1984,Pakistan,GRADE 14
+50197,Gopi Krishna  Geddada,Stores Assistant,Stores Section,25-Oct-07,"2,116.00",15/12/1977,India,GRADE 11
+50203,Abdur  Rauf Ali Murad Khan,Loader Operator,Production,20-Jul-08,"1,980.00",01/01/1980,Pakistan,GRADE 10
+50209,Aboo  Kunnetheyil,Driver,Admin,26-Jan-09,"4,100.00",16/05/1967,India,GRADE12W
+50212,Vallabha Rao  Pandiri,Welder,Mechanical,09-May-09,"2,448.00",10/02/1975,India,GRADE 11
+50223,Krishna Reddy  Chinthagunta,Sample Boy,Quality Control,09-Dec-09,"1,678.00",20/12/1970,India,GRADE 9
+50228,Saju  Philip,Welder,Mechanical,22-Mar-10,"2,363.00",20/05/1975,India,GRADE 11
+50237,Firoz  Khan,Welder,Mechanical,13-Apr-10,"2,363.00",17/08/1981,India,GRADE 11
+50246,Jumah Abdulla Bin Buwaid  Aaesha,Sales Co-Ordinator,Sales and Logistics,01-Jul-10,"6,000.00",24/08/1985,United Arab Emirates,GRADE 14
+50249,Venkata Subbaiah  Chittyboyana,Sample Boy,Quality Control,13-Oct-10,"1,678.00",10/08/1985,India,GRADE 9
+50259,Shaikh  Mohioddin,Rigger,Mechanical,02-Aug-11,"2,300.00",01/06/1975,India,GRADE 11
+50262,Abubacker Siddiqe  Kudukan,Foreman,Mechanical,13-Aug-11,"4,260.00",22/05/1979,India,GRADE 13
+50284,Mahaboob Rabbani  Shaik,Assistant Sales Manager,Sales and Logistics,01-Mar-12,"9,500.00",18/09/1975,India,GRADE 17
+50290,Jayanna  Lingam,House Keeping Attendant,Admin,07-May-12,"1,545.00",20/08/1980,India,GRADE 9
+50294,Anas Ahmed Abdul Rab  Al Yafil,Transport Incharge,Admin,01-Oct-13,"13,135.00",04/04/1981,Oman,GRADE 18
+50303,Manohar  Choudarapu,Packer Operator,Mechanical,23-Mar-14,"1,535.00",18/12/1991,India,GRADE 9
+50305,Chandra  Doddi,House Keeping Attendant,Admin,30-Mar-14,"1,545.00",26/12/1980,India,GRADE 9
+50306,Sardar  Ali,Packer Operator,Mechanical,31-Mar-14,"1,535.00",19/01/1975,Pakistan,GRADE 9
+50313,Siva Reddy  Javvaji,Electrician,E & I,04-Jun-14,"2,543.00",14/05/1980,India,GRADE12W
+50314,Ravi Prakash  Nalli,Electrician,E & I,04-Jun-14,"2,543.00",13/04/1978,India,GRADE12W
+50315,Krishna Kumar  Chandrasekharan Nair,Security Guard,HSE,29-Jun-14,"1,900.00",20/05/1973,India,GRADE 10
+50319,Sukhwinder  Singh,Heavy Truck Driver,Production,01-Aug-14,"2,480.00",21/10/1962,India,GRADE 11
+50321,Nasar  Tharayil Kunhimon,Security Guard,HSE,24-Mar-15,"1,600.00",05/06/1990,India,GRADE 9
+50322,Abdullah Ahmed Abdul Rab  Al Yafaei,Security Manager,HSE,01-Jun-15,"14,758.00",20/11/1983,Oman,GRADE 18
+50323,Ali Said Ali  Al Shehhi,Asst.Public Relation Offi,Admin,01-Jul-15,"11,859.00",08/09/1983,Oman,GRADE 18
+50327,Abdulhamid Bashir Artan  Mohammed,HR & ADMIN Manager,HR Administration,03-Nov-15,"25,000.00",28/06/1988,Somalia,GRADE 21
+50328,George  Sanikidze,PLANT CO-ORDINATOR,Georgia,06-Dec-15,"11,000.00",18/07/1984,Georgia,GRADE 17
+50340,Shavali  Shaik,Mechanic,Mechanical,13-Jul-16,"2,400.00",01/05/1976,India,GRADE 11
+50343,Gaya Prasad  Pal,Rigger,Mechanical,17-Jul-16,"1,900.00",14/07/1986,India,GRADE 10
+50346,Mohammad Mashkur Alam  Khan,Rigger,Mechanical,11-Oct-16,"1,900.00",10/01/1978,India,GRADE 10
+50350,Fayyaz  Ullah,Weigh Bridge Operator,Procurement,14-Nov-16,"2,000.00",23/01/1991,Pakistan,GRADE12S
+50362,Tara  Chand,Mason ,Mechanical,15-May-17,"2,100.00",20/04/1977,India,GRADE 11
+50368,Diler  Singh,Truck Driver - Bulker,Sales and Logistics,28-May-17,"2,000.00",17/12/1987,India,GRADE 10
+50370,Gurpreet  Singh,Truck Driver - Bulker,Sales and Logistics,04-Jun-17,"2,000.00",16/09/1981,India,GRADE 10
+50372,Habib  Noor,Truck Driver - Bulker,Sales and Logistics,21-Jun-17,"2,000.00",01/01/1979,Pakistan,GRADE 10
+50373,Pankaj Kumar  Das,Weigh Bridge Operator,Procurement,29-Jun-17,"2,250.00",09/02/1996,India,GRADE12S
+50377,Muhammad  Abbas,Truck  Cum Shovel Operato,Production,31-Jul-17,"2,800.00",23/03/1968,Pakistan,GRADE12W
+50391,Mohan  Subramanian,Engineer (Instrumentation),E & I,29-Oct-17,"5,500.00",14/05/1986,India,GRADE 15
+50397,Reddy Prakash Reddy  Busireddy,Tester / Gauger,Quality Control,24-Dec-17,"1,500.00",25/04/1995,India,GRADE12S
+50401,Mohammed Mahfoodh Hamood  Al Siyabi,Assistant Stores Manager,Stores Section,18-Mar-18,"18,413.00",07/06/1990,Oman,GRADE 20
+50402,Mohamed Saleh  Al Tamimi,Asst.Security Manager,HSE,20-Mar-18,"14,529.00",14/01/1993,Oman,GRADE 18
+50404,Vishnu Shankar  Murugesaraja,Production Incharge,Production,29-Mar-18,"8,300.00",19/10/1988,India,GRADE 17
+50406,Abdulaziz Bashir Artan Mohamed  Mariam A,Stores Officer,Stores Section,04-Apr-18,"6,000.00",03/04/1990,Somalia,GRADE 15
+50409,Kumar  Rakesh,Mason,Production,19-Apr-18,"1,900.00",01/10/1978,India,GRADE 10
+50414,Achi  Darlington Onyeka,HSE Supervisor,HSE,01-May-18,"6,000.00",09/04/1987,Nigeria,GRADE 15
+50420,Kulaitham Obaid Ali Salem  Almazrouei,HR Executive,External Relationship,22-Jul-18,"7,000.00",19/06/1996,United Arab Emirates,GRADE 15
+50423,Maryam Saif Salem Meshati  Almazrouei,Asst.Purchase Officer,Procurement,02-Aug-18,"6,000.00",11/12/1996,United Arab Emirates,GRADE 14
+50424,Mohammed Saif Zahir  Al Abri,Asst.External Relationship Manager,External Relationship,08-Aug-18,"21,493.00",01/01/1970,Oman,GRADE 20
+50425,Haribabu  Bhupala,Store House Man,Stores Section,09-Aug-18,"1,500.00",20/03/1987,India,GRADE 9
+50427,Ek Raj  Basnet,Security Guard,HSE,16-Sep-18,"1,750.00",15/11/1971,Nepal,GRADE 10
+50432,Rasheed  Puzhamkandathayil,Heavy Truck Driver,Production,09-Oct-18,"2,500.00",01/07/1974,India,GRADE12W
+50436,Bassel  El Rabah,Acting IT Manager,Information technology,21-Oct-18,"11,000.00",08/10/1991,Palestine,GRADE 17
+50438,Idriss Yacoub  Moustapha,Security Supervisor,HSE,09-Dec-18,"4,000.00",01/01/1983,Chad,GRADE 14
+50442,Askar  Mundenkattayil,Shovel Operator,Production,03-Jan-19,"2,200.00",07/05/1992,India,GRADE 11
+50443,Tariq  Ismail,CCR Operator,Production,06-Jan-19,"4,100.00",22/09/1976,Pakistan,GRADE 14
+50444,Ahmed Abdullah Ali,Raw Materials Supervisor,Production,13-Jan-19,"9,700.00",01/01/1968,Somalia,GRADE 17
+50450,Bikki  Vijayendra,Electrician,E & I,31-Jan-19,"1,700.00",22/12/1994,India,GRADE 9
+50459,Srinivas  Konda,Electrician,E & I,24-Feb-19,"1,800.00",01/04/1982,India,GRADE 10
+50468,Ishwori  Adhikari,Security Guard,HSE,25-Jun-19,"1,750.00",07/04/1982,Nepal,GRADE 10
+50470,Arunkumar  Balakrishnan,Tyre Mechanic,Mechanical,14-Jul-19,"2,000.00",01/02/1972,India,GRADE 10
+50471,Krishnendu  Banerjee,Projects Manager,Projects,14-Aug-19,"16,000.00",08/06/1982,India,GRADE 18
+50472,Mohammed  Idrish,Sample Boy,Quality Control,14-Aug-19,"1,300.00",14/12/1991,India,GRADE 9
+50473,Soumajit  Das,Quality Control Manager,Quality Control,26-Aug-19,"28,000.00",05/07/1982,India,GRADE 21
+50476,Priyantha  Mudiyanselage,Cook,Admin,01-Oct-19,"2,100.00",08/09/1970,Sri Lanka,GRADE 11
+50477,Kawinda  Pitawala Liyanage,HR Executive ,HR Administration,01-Oct-19,"4,000.00",25/04/1994,Sri Lanka,GRADE 14
+50482,Seetarama  Mudunoori,WHR Supervisor,Mechanical,04-Dec-19,"5,500.00",16/04/1990,India,GRADE 15
+50488,Mubarik  Ali,Sample Boy,Quality Control,02-Feb-20,"2,000.00",05/04/1990,India,GRADE 10
+50490,Gurpreet  Singh,Truck Driver - Bulker,Sales and Logistics,06-Jul-20,"2,000.00",11/09/1988,India,GRADE 10
+50491,Balwinder  Singh,Truck Driver - Bulker,Sales and Logistics,06-Jul-20,"2,000.00",06/06/1969,India,GRADE 10
+50498,Puneet  Upadhyay,Weigh Bridge Operator,Sales and Logistics,17-Jan-21,"3,000.00",25/03/1997,India,GRADE12S
+50500,Abdul Nazer  Valiyapeedikakka,Driver,Admin,21-Sep-21,"2,500.00",24/02/1979,India,GRADE12W
+50502,Srinivas  Lagadapati,WHR Operator,Mechanical,05-Dec-21,"3,500.00",22/09/1996,India,GRADE 13
+50503,Venu  Utakam,Electrician,E & I,05-Dec-21,"2,600.00",08/04/1988,India,GRADE12W
+50506,Ashok Kumar Reddy  Karmuru,Fitter,Mechanical,13-Jan-22,"3,500.00",19/06/1981,India,GRADE12W
+50507,Gangaiah  Nalla Singu,Pump House Operator,Mechanical,13-Jan-22,"1,600.00",01/07/1981,India,GRADE 9
+50508,Shamsher  Singh,Pump House Operator,Mechanical,17-Jan-22,"1,600.00",26/06/1999,India,GRADE 9
+50509,Praveen  Singh,General Helper,Admin,06-Feb-22,"1,800.00",06/09/1993,India,GRADE 10
+50510,Bajeesh Nediyedath  Balan,Driver,Admin,03-Mar-22,"2,500.00",01/04/1981,India,GRADE12W
+50511,Ravindra Babu  Rebba,Stacker Operator,Production,14-Mar-22,"2,400.00",01/06/1969,India,GRADE 11
+50512,Nisar  Pandikasala Valappil,Rigger,Mechanical,14-Apr-22,"2,350.00",31/05/1981,India,GRADE 11
+50514,Reddaiah Mallarapu,Sample Boy,Quality Control,05-Aug-22,"1,600.00",18/06/1987,India,GRADE 9
+50519,Shyama Manhalam Parambil,Admin Assistant,Admin,12-Sep-22,"3,000.00",23/08/1994,India,GRADE 13
+50522,Prasobh Karicha Parambil,Driver,Admin,03-Oct-22,"2,500.00",29/06/1994,India,GRADE 10
+50523,Ramesh Babu Yarlagadda,Technician,E & I,10-Oct-22,"2,000.00",17/08/1995,India,GRADE 10
+50524,Venkateswara Rao Veerla,Technician,E & I,10-Oct-22,"2,000.00",09/06/1995,India,GRADE 10
+50528,Shaik Adil,Packer Operator,Mechanical,20-Mar-23,"1,535.00",04/02/2001,India,GRADE 9
+50529,Rakesh Reddy Guttikonda,Packer Operator,Mechanical,20-Mar-23,"1,535.00",24/07/1995,India,GRADE 9
+50530,Shahid Ahamed,Head Of Finance,Finance,22-Mar-23,"25,000.00",05/07/1986,India,GRADE 19
+50534,Donikena Nagaraju,Packer Operator,Mechanical,31-May-23,"2,188.00",25/12/1983,India,GRADE 11
+50535,RaviTeja Nagambatti,Packer Operator,Mechanical,31-May-23,"1,535.00",29/04/2001,India,GRADE 9
+50536,Swamy Sankar Gajjala,Packer Operator,Mechanical,31-May-23,"1,535.00",09/06/2004,India,GRADE 9
+50537,Dilawar Khan,Gardener,Admin,05-Jun-23,"2,000.00",01/07/1968,Pakistan,GRADE 10
+50538,Waleed Alam Khan,Packer Operator,Mechanical,06-Jun-23,"1,931.00",02/04/1991,Pakistan,GRADE 10
+50539,Amadeep Singh,Truck Driver - Bulker,Sales and Logistics,03-Jul-23,"2,000.00",05/04/1999,India,GRADE 10
+50540,Mostafa Mousa Mostafa,Security Guard,HSE,05-Jul-23,"1,750.00",01/01/1972,Sudan,GRADE 10
+50541,Shamsher Singh,Truck Driver - Bulker,Sales and Logistics,04-Aug-23,"2,000.00",19/12/1984,India,GRADE 10
+50542,Lakhvinder Singh,Truck Driver - Bulker,Sales and Logistics,04-Aug-23,"2,000.00",31/07/1984,India,GRADE 10
+50544,Som Nath Lal Chand,Security Guard,HSE,21-Sep-23,"1,750.00",09/07/1988,India,GRADE 10
+50546,Kunwer Tariq Mohammad Khan,Accountant,Finance,09-Oct-23,"6,500.00",14/10/1981,India,GRADE 16
+50547,Gunasekaran R,Senior Engineer(Technical),Sales and Logistics,23-Oct-23,"10,000.00",27/07/1966,India,GRADE 18
+50553,Kulwinder Singh,Diesel Mechanic,Mechanical,02-Jan-24,"3,000.00",15/12/1991,India,GRADE12W
+50554,Gurjeet Shah,Forklift Operator,Mechanical,11-Jan-24,"2,000.00",18/02/1999,India,GRADE 10
+50555,SukhRaj Singh,Truck Driver - Bulker,Sales and Logistics,11-Jan-24,"2,000.00",13/02/1991,India,GRADE 10
+50558,Nir Bahadur Tamang,Security Guard,HSE,01-Feb-24,"1,750.00",10/09/1989,Nepal,GRADE 10
+50559,Mohammad Belal Khan,Procurement Executive,Procurement,19-Feb-24,"3,000.00",14/07/1996,India,GRADE 13
+50560,Mukesh Kumar Upadhyay,Weigh Bridge Operator,Sales and Logistics,19-Feb-24,"2,300.00",15/11/1980,India,GRADE12S
+50563,Karanpreet Singh,Truck Driver - Bulker,Sales and Logistics,19-Feb-24,"2,000.00",07/12/1999,India,GRADE 10
+50564,Utom Chandra Shil,Attendant,Production,19-Feb-24,"1,750.00",26/01/1981,Bangladesh,GRADE 10
+50565,Anas Karady,Cook,Admin,21-Feb-24,"2,000.00",21/07/1984,India,GRADE 10
+50567,Musraf Alam,Palletizer Operator,Mechanical,15-Apr-24,"1,800.00",10/06/2000,India,GRADE 10
+50569,Siva Prasad Eddupenta,CCR Operator,Production,03-May-24,"4,300.00",26/02/1981,India,GRADE 14
+50570,Bilal Ahmed Daftarband,CCR Operator,Production,03-May-24,"4,450.00",26/07/1992,India,GRADE 14
+50571,Mohamed Shakir Kariapper,Sales Administrative Assistant,Sales and Logistics,06-May-24,"3,200.00",27/10/1979,Sri Lanka,GRADE 13
+50573,Aravindan Raja,Technician,E & I,17-May-24,"2,500.00",20/04/1995,India,GRADE12W
+50574,Renjith PadmanabhanPillai,Lab Technician,Quality Control,26-May-24,"3,000.00",15/04/1985,India,GRADE 13
+50577,Raees Khan,Security Guard,HSE,01-Aug-24,"1,750.00",01/10/1991,Pakistan,GRADE 10
+50578,Muhammad Nouman,House Keeping Attendant,Admin,19-Aug-24,"1,300.00",04/06/2002,Pakistan,GRADE 9
+50579,Talal Jumah Habib,Senior Sales and Logistic,Sales and Logistics,22-Aug-24,"22,800.00",13/03/1978,Oman,GRADE 21
+50580,Hasaan Adel Hassan Abdalla,Planning & Inspection Engineer,Mechanical,02-Sep-24,"12,000.00",21/07/1996,Egypt,GRADE 15
+50582,Murugesan Thangamuthu,Mason,Production,07-Oct-24,"2,000.00",10/05/1971,India,GRADE 10
+50584,Mohamed Shabin Tharayil,Attendant,Production,09-Oct-24,"1,500.00",31/12/2002,India,GRADE 9
+50586,Shaji Parakkal Aboobakker,Truck Driver - Bulker,Sales and Logistics,25-Oct-24,"2,000.00",01/06/1979,India,GRADE 10
+50588,Anil Behera,WHR Operator,Production,26-Nov-24,"4,000.00",06/06/1985,India,GRADE 14
+50589,Praven Keezhpadam Vasu,Office Boy,Admin,02-Jan-25,"1,400.00",28/05/1979,India,GRADE 9
+50590,Pinku Sarkar,Weigh Bridge Operator,Procurement,22-Jan-25,"2,000.00",07/01/2002,India,GRADE12S
+50592,Suman Das,Weigh Bridge Operator,Sales and Logistics,05-Mar-25,"2,600.00",02/02/1991,India,GRADE12S
+50593,Vibeesh Mannath,House Keeping Mechanical,Mechanical,13-Mar-25,"1,500.00",13/05/1987,India,GRADE 9
+50595,Vijay Gunasekaran,Packing Plant Supervisor,Mechanical,28-Mar-25,"5,800.00",30/05/1998,India,GRADE 15
+50596,Kalu Gharti,Attendant,Production,02-Apr-25,"1,550.00",29/07/1982,Nepal,GRADE 9
+50597,Ayman AlSanosi Ali Abbas,Junior IT Help Desk Suppo,Information technology,07-Apr-25,"3,300.00",10/11/1996,Sudan,GRADE 13
+50598,Shaikh Faimul Bari,CCR Operator,Production,21-Apr-25,"3,900.00",20/04/1997,India,GRADE 14
+50601,Dilbag Singh,Truck Driver - Bulker,Sales and Logistics,24-Jun-25,"2,000.00",25/10/1976,India,GRADE 10
+50602,Rajanna Gurrapu,House Keeping Attendant,Admin,30-Jun-25,"1,500.00",15/12/1972,India,GRADE 9
+50604,Asik Mallick,CCR Operator,Production,18-Aug-25,"3,600.00",23/04/1995,India,GRADE 13
+50605,Cyrus Jay Alburo Genova,Security Guard,HSE,12-Sep-25,"1,750.00",31/10/1999,Philippines,GRADE 10
+50606,Muralidharan Pandurangan,Attendant,Production,10-Oct-25,"1,700.00",05/09/1998,India,GRADE 9
+50607,Muhammeed Salih,Sample Boy,Quality Control,14-Oct-25,"1,500.00",01/10/1997,India,GRADE 9
+50608,AjayRathinam Selvam,Security Guard,HSE,05-Nov-25,"1,750.00",27/12/2001,India,GRADE 10
+50609,Rajan Kumar,Lab Technician,Quality Control,05-Nov-25,"3,000.00",10/11/1997,India,GRADE 13
+50610,John Richard,HSE Officer,HSE,08-Dec-25,"4,000.00",05/12/1990,India,GRADE 14
+50611,Jyotirmay Bardalai,Auto Garage Incharge,Mechanical,19-Dec-25,"7,000.00",05/01/1992,Philippines,GRADE 16
+50612,Sreekuttan Vijaykumar,Office Boy,Admin,19-Dec-25,"1,400.00",16/12/2001,India,GRADE 9
+50613,Subash Lingam,Fitter,Mechanical,19-Dec-25,"3,700.00",21/06/1984,India,GRADE12W
