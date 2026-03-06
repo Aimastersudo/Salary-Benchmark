@@ -13,8 +13,8 @@ from fpdf import FPDF
 # ඔයාගේ Market_salary.csv එකේ තියෙන Manager තනතුරේ "හරිම නම" මෙතන දකුණු පැත්තේ දාන්න.
 HOD_MARKET_MAPPING = {
     "Production Incharge": "Production Manager", 
-    "Chief Engineer (Mechanical)": "Mechanical Manager", # මේ නම Market ෆයිල් එකේ තියෙන විදිහටම වෙනස් කරන්න
-    "Dy. Chief Engineer (Electrical)": "Electrical Manager" # මේ නම Market ෆයිල් එකේ තියෙන විදිහටම වෙනස් කරන්න
+    "Chief Engineer (Mechanical)": "Chief Engineer (Mechanical)", # මේ නම Market ෆයිල් එකේ තියෙන විදිහටම වෙනස් කරන්න
+    "Dy. Chief Engineer (Electrical)": "Dy. Chief Engineer (Electrical)" # මේ නම Market ෆයිල් එකේ තියෙන විදිහටම වෙනස් කරන්න
 }
 
 # 1. Page Configuration
