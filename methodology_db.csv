@@ -1,0 +1,6 @@
+Step,Header,Description
+1,Mathematical Accuracy,We utilize the Arithmetic Mean method. If data points are available from all 4 competitor companies for a specific role the sum of these 4 values is divided by 4 ensuring 100% computational integrity.
+2,Data Cleaning Logic,Since market data often exists as ranges (e.g. 5000 - 7000) our engine automatically identifies the Mid-point (Mean) for a more realistic average.
+3,Null Handling,If a competitor has no data (N/A or "-") that entry is excluded from the denominator to avoid incorrectly deflating the market average.
+4,Standardization,Our Master Clean engine ensures titles like Admin Asst and Administrative Assistant are standardized for accurate cross-company mapping.
+5,Practical Reliability,This calculation reflects a Fair Market Level based on current competitor payroll data. It serves as a reliable benchmark because extreme outliers are managed through normalized mid-point aggregation.
