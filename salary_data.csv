@@ -1,5 +1,5 @@
 ﻿Designation,Num of Designation,Department,Location,Employee Type,Your Salary (AED)
-Accountant,1,Production,UAE,Staff,"6,500"
+Accountant,1,Finance,UAE,Staff,"6,500"
 Admin Assistant,1,Admin,UAE,Staff,"3,000"
 Assistant Engineer (Production),1,Mechanical,UAE,Staff,"3,813"
 Assistant Sales Manager,1,Sales & Logistics,UAE,Staff,"9,500"
@@ -89,3 +89,4 @@ Senior Engineer (Technical),1,Sales & Logistics,UAE,Staff,"10,000"
 Sales Administrative Assistant,1,Sales & Logistics,UAE,Staff,"3,200"
 Acting IT Manager,1,IT,UAE,Staff,"11,000"
 Projects Manager,1,Projects,UAE,Staff,"16,000"
+
