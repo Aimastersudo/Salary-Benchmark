@@ -24,8 +24,8 @@ st.markdown("""
     .highlight-green { color: #22c55e; font-weight: bold; }
     .profile-card { background-color: #1f2937; padding: 20px; border-radius: 15px; border: 1px solid #3b82f6; }
     
-    /* Transparency Additions */
-    .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 15px; border-radius: 10px; text-align: center; font-size: 20px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 15px 0; border-left: 6px solid #3b82f6; }
+    /* Logic & Transparency Additions */
+    .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 20px; border-radius: 10px; text-align: center; font-size: 22px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 15px 0; border-left: 6px solid #3b82f6; }
     .method-section { background-color: #111827; border: 1px solid #1f2937; padding: 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #38bdf8; }
     .method-header { color: #38bdf8; font-weight: bold; font-size: 20px; margin-bottom: 12px; display: block; }
     .method-text { color: #e2e8f0; font-size: 16px; line-height: 1.7; margin-bottom: 8px;}
@@ -34,7 +34,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. ADVANCED PDF GENERATOR (Your exact code)
+# 2. ADVANCED PDF GENERATOR
 def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_count):
     pdf = FPDF()
     pdf.add_page()
@@ -48,7 +48,7 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
     summary = (f"Market Disparity: {avg_v}% | Total Workforce: {total_hc} | Roles: {len(f_df)}\n\n"
                f"AI Insights: The current parity gap is {avg_v}%. The {worst_d} department shows the highest "
                f"competitive risk. We recommend immediate salary alignment for {loyalty_count} loyal personnel (5y+) "
-               f"to prevent talent poaching by JK Cement and Emirates Steel.")
+               f"to prevent talent poaching.")
     pdf.multi_cell(190, 8, summary, 1); pdf.ln(10)
     pdf.set_font("Arial", 'B', 14); pdf.set_fill_color(255, 230, 230)
     pdf.cell(190, 10, " 2. Critical High-Priority Retention Gaps", 1, 1, 'L', True)
@@ -57,10 +57,9 @@ def generate_graphical_pdf(f_df, avg_v, worst_d, total_hc, crit_df, loyalty_coun
     for _, row in crit_df.head(15).iterrows():
         pdf.cell(90, 7, str(row['Designation']), 1); pdf.cell(50, 7, str(row['Department']), 1)
         pdf.cell(30, 7, f"{int(row['Variance %'])}%", 1); pdf.cell(20, 7, str(int(row['Live_HC'])), 1, 1)
-    pdf.ln(15); pdf.set_font("Arial", 'I', 8); pdf.cell(190, 5, "CONFIDENTIAL - PIONEER CEMENT AI SYSTEM", 0, 1, 'C')
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. DATABASE LOADER (100% EXACTLY AS YOU UPLOADED IT - NO CHANGES)
+# 3. DATABASE LOADER (With Embedded Formula Logic & HOD Market Upgrade)
 @st.cache_data
 def load_databases():
     try:
@@ -80,6 +79,16 @@ def load_databases():
         bridge = {"Asst.Public Relation Offi": "Asst. Public Relation Officer", "Asst.External Relationship Manager": "Asst. External Relationship Manager", "Junior Engineer ( Instrum": "Junior Engineer (Instrumentation)", "Truck Cum Shovel Operato": "Truck Cum Shovel Operator", "Junior It Help Desk Suppo": "Junior It Help Desk Support", "Dy.Chief Engineer(Electri": "Dy. Chief Engineer (Electrical)", "Assistant Engineer (Pro": "Assistant Engineer (Production)", "Chief Engineer (Mech)": "Chief Engineer (Mechanical)", "Assistant Engineer (Mech)": "Assistant Engineer (Mechanical)", "Senior Engineer(Technical)": "Senior Engineer (Technical)", "Finance Co-Ordinator": "Finance Coordinator", "Marketing Co-Ordinator": "Marketing Coordinator", "Plant Co-Ordinator": "Plant Coordinator", "Sales Co-Ordinator": "Sales Coordinator", "Senior Sales And Logistic": "Senior Sales & Logistics", "Asst.Security Manager": "Asst. Security Manager", "Asst.Purchase Officer": "Asst. Purchase Officer", "Truck Driver - Bulker": "Truck Driver - Bulker", "Dy.Chief Engineer(Mech)": "Dy. Chief Engineer (Mechanical)"}
         payroll_df['Match_Key'] = payroll_df['Match_Key'].replace(bridge)
 
+        # 🚀 HOD TO MANAGER MAPPING (Upgrades HODs to Manager Salary automatically)
+        hod_market_override = {
+            "Chief Engineer (Mechanical)": "Mechanical Manager",  # Ensures they pull Manager data
+            "Production Incharge": "Production Manager",
+            "Dy. Chief Engineer (Electrical)": "Electrical Manager"
+        }
+        # Create a special Lookup Key just for joining with Market Data
+        core_df['Lookup_Key'] = core_df['Match_Key'].replace(hod_market_override)
+        payroll_df['Lookup_Key'] = payroll_df['Match_Key'].replace(hod_market_override)
+
         dept_fix = {"HR Administration": "HR", "Information technology": "IT", "Quality Control": "QC", "Sales and Logistics": "Sales & Logistics", "Stores Section": "Stores", "Procurment": "Procurement"}
         payroll_df['Department'] = payroll_df['Department'].replace(dept_fix); core_df['Department'] = core_df['Department'].replace(dept_fix)
 
@@ -89,18 +98,10 @@ def load_databases():
         payroll_df['Tenure_M'] = (((today - payroll_df['DOJ']).dt.days % 365.25) / 30.44).fillna(0).astype(int)
         payroll_df['Tenure_Text'] = payroll_df.apply(lambda x: f"{int(x['Tenure_Y'])}y {int(x['Tenure_M'])}m" if pd.notna(x['DOJ']) else "N/A", axis=1)
 
-        rows = []
-        for _, row in core_df.iterrows():
-            dv = str(row['Department'])
-            if '/' in dv:
-                for sd in [s.strip() for s in dv.split('/')]:
-                    nr = row.copy(); nr['Department'] = sd; rows.append(nr)
-            else: rows.append(row)
-        core_df = pd.DataFrame(rows)
-
         def parse_v(v):
+            if pd.isna(v): return np.nan
             v = str(v).replace(',', '').replace('AED', '').strip()
-            if v in ['-', '', 'nan']: return np.nan
+            if v in ['-', '', 'nan', 'None']: return np.nan
             if '-' in v:
                 p = [float(i.strip()) for i in v.split('-') if i.strip()]
                 return sum(p)/len(p) if p else np.nan
@@ -110,13 +111,37 @@ def load_databases():
         comp_cols = [c for c in market_df.columns if c not in ['#', 'Designation', 'Match_Key']]
         m_calc = market_df.copy()
         for c in comp_cols: m_calc[c] = m_calc[c].apply(parse_v)
-        market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0) # Keep NaN here to prevent 0 average
-        m_clean = market_df[['Match_Key', 'Market_Avg'] + comp_cols].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
+        market_df['Market_Avg'] = m_calc[comp_cols].mean(axis=1).round(0)
+
+        # 🚀 EMBEDDED AUDIT/FORMULA LOGIC
+        def get_audit(row):
+            parts = []
+            cnt = 0
+            for c in comp_cols:
+                if pd.notna(row[c]) and row[c] > 0:
+                    parts.append(f"{c}: {int(row[c]):,}")
+                    cnt += 1
+            return " + ".join(parts) if parts else "No External Data", cnt if cnt > 0 else 1, cnt
+
+        audit_res = m_calc.apply(get_audit, axis=1)
+        market_df['Audit_Sum'] = [x[0] for x in audit_res]
+        market_df['Data_Count'] = [x[1] for x in audit_res]
+        market_df['Actual_Count'] = [x[2] for x in audit_res]
+        
+        for c in comp_cols: market_df[f"Mean_{c}"] = m_calc[c]
+        
+        m_clean = market_df[['Match_Key', 'Market_Avg', 'Audit_Sum', 'Data_Count', 'Actual_Count'] + [f"Mean_{c}" for c in comp_cols]].dropna(subset=['Market_Avg']).drop_duplicates(subset=['Match_Key'])
 
         core_df['Your Salary (AED)'] = core_df['Your Salary (AED)'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
-        final_df = pd.merge(core_df, m_clean, on='Match_Key', how='left')
+        
+        # Merge using Lookup_Key so HODs inherit Manager data
+        final_df = pd.merge(core_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
         final_df['Market_Avg'] = final_df['Market_Avg'].fillna(final_df['Your Salary (AED)']).astype(int)
         
+        final_df['Audit_Sum'] = final_df['Audit_Sum'].fillna("Pioneer Base Used")
+        final_df['Data_Count'] = final_df['Data_Count'].fillna(1)
+        final_df['Actual_Count'] = final_df['Actual_Count'].fillna(0)
+
         var_calc = ((final_df['Your Salary (AED)'] - final_df['Market_Avg']) / final_df['Market_Avg'].replace(0, np.nan) * 100)
         final_df['Variance %'] = var_calc.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
 
@@ -134,40 +159,23 @@ def load_databases():
             if len(idx) > 0: final_df.at[idx[0], 'Live_HC'] += rem
 
         payroll_df['Salary'] = payroll_df['Salary'].astype(str).str.replace(',', '').astype(float).round(0).fillna(0).astype(int)
-        emp_data = pd.merge(payroll_df, m_clean, on='Match_Key', how='left')
+        
+        # Merge Employee data using Lookup_Key
+        emp_data = pd.merge(payroll_df, m_clean, left_on='Lookup_Key', right_on='Match_Key', how='left', suffixes=('', '_m'))
         emp_data['Market_Avg'] = emp_data['Market_Avg'].fillna(emp_data['Salary']).astype(int)
+        emp_data['Audit_Sum'] = emp_data['Audit_Sum'].fillna("Pioneer Base Used")
+        emp_data['Data_Count'] = emp_data['Data_Count'].fillna(1)
+        
         gap_c = ((emp_data['Salary'] - emp_data['Market_Avg']) / emp_data['Market_Avg'].replace(0, np.nan) * 100)
         emp_data['Gap %'] = gap_c.replace([np.inf, -np.inf], np.nan).fillna(0).round(0).astype(int)
         emp_data['Gap (AED)'] = (emp_data['Salary'] - emp_data['Market_Avg']).astype(int)
-        t_map = dict(zip(core_df['Match_Key'], core_df['Employee Type']))
-        emp_data['Employee Type'] = emp_data['Match_Key'].map(t_map).fillna("Worker")
         return final_df, emp_data, comp_cols
     except Exception as e:
         st.error(f"Logic Engine Error: {e}"); return None, None, None
 
 df, emp_df, comp_cols = load_databases()
 
-# 🚀 SAFE UI CALCULATION HELPER (Calculates Formula strings safely without touching DB)
-def generate_formula_ui(row_data, c_cols):
-    parts = []
-    c_val = 0
-    c_list = []
-    for c in c_cols:
-        v = row_data.get(c)
-        try:
-            v_f = float(str(v).replace(',','').strip()) if pd.notna(v) and str(v).strip() not in ['nan','-','None',''] else 0
-        except:
-            v_f = 0
-        if v_f > 0:
-            parts.append(f"{c}: {int(v_f):,}")
-            c_list.append({"Company": c, "Salary": v_f})
-            c_val += 1
-    f_string = " + ".join(parts) if parts else "No External Data"
-    div_val = c_val if c_val > 0 else 1
-    return f_string, div_val, c_val, c_list
-
 if df is not None:
-    # HOD ROLES LIST
     hod_roles = ["Chief Engineer (Mechanical)", "Production Incharge", "Dy. Chief Engineer (Electrical)"]
 
     with st.sidebar:
@@ -178,13 +186,6 @@ if df is not None:
         page = st.radio("MENU", ["📊 Executive Dashboard", "📉 Market Analysis", "👥 PCI Employees", "📈 Increment Planner", "🎯 Transparency Lab"])
         st.markdown("---")
         depts = sorted(df['Department'].unique()); sel_depts = st.multiselect("Filter Dept:", depts, default=depts)
-        if st.button("Generate Strategy Report"):
-            f_pdf = df[df['Department'].isin(sel_depts)]
-            avg_v = int(f_pdf['Variance %'].mean()) if not f_pdf.empty else 0
-            worst_d = f_pdf.groupby('Department')['Variance %'].mean().idxmin() if not f_pdf.empty else "N/A"
-            crit_df = f_pdf[f_pdf['Variance %'] <= -15].sort_values('Variance %')
-            pdf_bytes = generate_graphical_pdf(f_pdf, avg_v, worst_d, int(f_pdf['Live_HC'].sum()), crit_df, len(emp_df[emp_df['Tenure_Y'] >= 5]))
-            st.download_button(label="📥 Download Strategy PDF", data=pdf_bytes, file_name="PCI_Strategic_Report.pdf", mime="application/pdf")
 
     f_df = df[df['Department'].isin(sel_depts)]; f_emp = emp_df[emp_df['Department'].isin(sel_depts)]
 
@@ -197,26 +198,28 @@ if df is not None:
         mean_v = f_df['Variance %'].mean(); avg_v = f"{int(mean_v) if pd.notna(mean_v) else 0}%"
         c3.metric("Avg. Market Gap", avg_v, delta_color="inverse")
         c4.metric("Critical Gaps (<-30%)", len(f_df[f_df['Variance %'] < -30]))
-        st.dataframe(f_df[['Designation', 'Department', 'Employee Type', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
+        st.dataframe(f_df[['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
+        
         st.markdown("---")
         st.subheader("🔍 Role Deep-Dive Analysis")
         sel_role = st.selectbox("Select a Role:", sorted(f_df['Designation'].unique()))
         if sel_role:
             row = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Insight:</b> {row['Designation']} is {abs(int(row['Variance %']))}% {'below' if row['Variance %'] < 0 else 'above'} market benchmark. Retention risk: {'High' if row['Variance %'] < -20 else 'Moderate'}.</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>Gemini HR Insight:</b> {row['Designation']} is {abs(int(row['Variance %']))}% {'below' if row['Variance %'] < 0 else 'above'} market benchmark.</div></div>""", unsafe_allow_html=True)
             
-            # HOD NOTE IN DASHBOARD
+            # 🚀 HOD NOTE
             if sel_role in hod_roles:
                 st.markdown(f"""<div class="note-box"><b>Strategic Context (HOD):</b> At Pioneer Cement, the <b>{sel_role}</b> functions as the Head of Department. Therefore, this designation's benchmark is explicitly mapped to the <b>Manager-level Salary</b> within the market for this department, ensuring accurate structural parity.</div>""", unsafe_allow_html=True)
 
-            # FORMULA BOX IN DASHBOARD
-            f_str, f_div, _, _ = generate_formula_ui(row, comp_cols)
-            st.markdown(f"""<div class="formula-display">Calculation: ({f_str}) / {f_div} = {int(row['Market_Avg']):,}</div>""", unsafe_allow_html=True)
+            # 🚀 FORMULA DISPLAY
+            st.markdown(f"""<div class="formula-display">Calculation: ({row['Audit_Sum']}) / {int(row['Data_Count'])} = {int(row['Market_Avg']):,} AED</div>""", unsafe_allow_html=True)
 
             cols = st.columns(len(comp_cols))
             for i, c in enumerate(comp_cols):
-                val = str(row.get(c, "nan"))
-                with cols[i]: st.markdown(f"""<div class="market-box"><small>{c}</small><br><b class="value-text">{val if val not in ['nan','-','None'] else 'Outsource'}</b></div>""", unsafe_allow_html=True)
+                val = str(row.get(f"Mean_{c}", "nan"))
+                with cols[i]:
+                    if val not in ['nan','-','None','']: st.markdown(f"""<div class="market-box"><small>{c}</small><br><b class="value-text">{int(float(val)):,}</b></div>""", unsafe_allow_html=True)
+                    else: st.markdown(f"""<div class="market-box"><small>{c}</small><br><span style="color:#4b5563;">N/A</span></div>""", unsafe_allow_html=True)
 
     # 2. MARKET ANALYSIS
     elif page == "📉 Market Analysis":
@@ -232,54 +235,35 @@ if df is not None:
             with c2:
                 fig2 = px.bar(f_df.groupby('Department')['Variance %'].mean().reset_index().sort_values('Variance %'), x='Variance %', y='Department', orientation='h', color='Variance %', color_continuous_scale='RdYlGn', title="Variance by Dept (%)")
                 fig2.update_layout(template="plotly_dark"); st.plotly_chart(fig2, use_container_width=True)
-            st.subheader("⚠️ High-Priority Adjustment List")
-            st.dataframe(f_df[f_df['Variance %'] <= -20][['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
 
     # 3. PCI EMPLOYEES
     elif page == "👥 PCI Employees":
         st.title("👥 PCI Employees Intelligence")
         if not f_emp.empty:
-            e1, e2, e3, e4 = st.columns(4)
-            e1.metric("Selected Employees", len(f_emp))
-            e2.metric("Loyal Staff (>5y)", len(f_emp[f_emp['Tenure_Y'] >= 5]))
-            e3.metric("Avg. Tenure", f"{round(f_emp['Tenure_Y'].mean(), 1)} Yrs")
-            e4.metric("Retention Risk", "High" if len(f_emp[f_emp['Gap %'] < -15]) > 10 else "Stable")
-
-            st.markdown(f"""
-            <div class="salary-card">
-                <div class="ai-insight-box">
-                    <b>AI Payroll Health Check:</b> {len(f_emp[f_emp['Gap %'] < -10])} employees are significantly underpaid. 
-                    Tenure vs Salary Analysis indicates <b>{len(f_emp[(f_emp['Tenure_Y'] >= 3) & (f_emp['Gap %'] < -10)])}</b> loyal personnel (3y+) are at critical risk. 
-                    We recommend immediate parity alignment for core technical roles.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            h1, h2 = st.columns(2)
-            with h1: st.error(f"⚠️ Top Underpaid: {f_emp.sort_values('Gap %').iloc[0]['Employee Name']} ({int(f_emp.sort_values('Gap %').iloc[0]['Gap %'])}%)")
-            with h2: st.success(f"⭐ Top Above Market: {f_emp.sort_values('Gap %', ascending=False).iloc[0]['Employee Name']} (+{int(f_emp.sort_values('Gap %', ascending=False).iloc[0]['Gap %'])}%)")
+            st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>AI Payroll Health Check:</b> {len(f_emp[f_emp['Gap %'] < -10])} employees are significantly underpaid. Tenure vs Salary Analysis indicates <b>{len(f_emp[(f_emp['Tenure_Y'] >= 3) & (f_emp['Gap %'] < -10)])}</b> loyal personnel (3y+) are at critical risk.</div></div>""", unsafe_allow_html=True)
 
             sel_name = st.selectbox("Search Spotlight Profile:", sorted(f_emp['Employee Name'].unique()))
             if sel_name:
                 ed = f_emp[f_emp['Employee Name'] == sel_name].iloc[0]
                 
-                # HOD NOTE IN EMPLOYEES
+                # 🚀 HOD NOTE
                 if ed['Designation'] in hod_roles:
-                    st.markdown(f"""<div class="note-box"><b>HOD Benchmarking Context:</b> Because {ed['Employee Name']} serves as the Head of Department for this unit, their salary is benchmarked directly against the <b>Manager-level Salary</b> in the market to ensure true competitive positioning.</div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="note-box"><b>HOD Benchmarking Context:</b> Because {ed['Employee Name']} serves as the Head of Department, their salary is benchmarked directly against the <b>Manager-level Salary</b> in the market to ensure true competitive positioning.</div>""", unsafe_allow_html=True)
 
                 ca, cb = st.columns([1, 2])
                 with ca:
-                    st.markdown(f"""<div class="profile-card"><h3>{ed['Employee Name']}</h3><p>ID: {ed['Employee ID']} | Tenure: {ed['Tenure_Text']}</p><p>Joined: {ed['Date of Joining']}</p><hr><p>Salary: {int(ed['Salary']):,} AED | <span class="{'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'}">Gap: {int(ed['Gap %'])}%</span></p></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="profile-card"><h3>{ed['Employee Name']}</h3><p>ID: {ed['Employee ID']} | Tenure: {ed['Tenure_Text']}</p><hr><p>Salary: {int(ed['Salary']):,} AED | <span class="{'highlight-red' if ed['Gap %'] < 0 else 'highlight-green'}">Gap: {int(ed['Gap %'])}%</span></p></div>""", unsafe_allow_html=True)
                 with cb:
-                    st.markdown("#### Competitor Comparison")
-                    # FORMULA IN EMPLOYEES
-                    e_str, e_div, _, _ = generate_formula_ui(ed, comp_cols)
-                    st.markdown(f"""<div style="background-color: #0f172a; padding: 10px; border-radius: 8px; font-family: monospace; color: #38bdf8; margin-bottom: 10px; border-left: 4px solid #3b82f6;">Logic: ({e_str}) / {e_div}</div>""", unsafe_allow_html=True)
+                    st.markdown("#### Competitor Comparison for Role")
+                    # 🚀 FORMULA DISPLAY
+                    st.markdown(f"""<div style="background-color: #0f172a; padding: 10px; border-radius: 8px; font-family: monospace; color: #38bdf8; margin-bottom: 10px; border-left: 4px solid #3b82f6;">Logic: ({ed['Audit_Sum']}) / {int(ed['Data_Count'])}</div>""", unsafe_allow_html=True)
                     
                     cc = st.columns(len(comp_cols))
                     for i, cn in enumerate(comp_cols):
-                        cv = str(ed.get(cn, "nan"))
-                        with cc[i]: st.markdown(f"""<div class="market-box"><small>{cn}</small><br><b style="color:#38bdf8;">{cv if cv not in ['nan','-','None'] else 'Outsource'}</b></div>""", unsafe_allow_html=True)
+                        cv = str(ed.get(f"Mean_{cn}", "nan"))
+                        with cc[i]:
+                            if cv not in ['nan','-','None','']: st.markdown(f"""<div class="market-box"><small>{cn}</small><br><b style="color:#38bdf8;">{int(float(cv)):,}</b></div>""", unsafe_allow_html=True)
+                            else: st.markdown(f"""<div class="market-box"><small>{cn}</small><br><span style="color:#4b5563;">N/A</span></div>""", unsafe_allow_html=True)
             st.divider()
             def style_status(v): return f'color: {"#ef4444" if v < 0 else "#22c55e"}; font-weight: bold'
             st.dataframe(f_emp[['Employee ID', 'Employee Name', 'Designation', 'Department', 'Tenure_Text', 'Salary', 'Market_Avg', 'Gap %']].style.applymap(style_status, subset=['Gap %']), use_container_width=True, hide_index=True)
@@ -290,23 +274,11 @@ if df is not None:
         target = st.selectbox("Select Employee:", sorted(f_emp['Employee Name'].unique()) if not f_emp.empty else [])
         if target:
             data = f_emp[f_emp['Employee Name'] == target].iloc[0]
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
-                new_s = int(data['Salary'] * (1 + pct/100))
-                gap_af = int(((new_s - data['Market_Avg']) / data['Market_Avg'] if data['Market_Avg'] != 0 else 1) * 100)
-                st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
-                st.metric("New Market Gap", f"{gap_af}%")
-            with col2:
-                st.markdown(f"""<div class="salary-card"><div class="ai-insight-box"><b>AI Budget Strategy:</b> Monthly impact: {new_s - int(data['Salary']):,} AED. New status: <b>{'Still Underpaid' if gap_af < -5 else 'Aligned'}</b>.</div></div>""", unsafe_allow_html=True)
-                fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, title={'text': "Market Position Gauge"}, gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}, 'steps': [{'range': [0, data['Market_Avg']*0.9], 'color': "red"}, {'range': [data['Market_Avg']*0.9, data['Market_Avg']*1.1], 'color': "green"}]}))
-                fig.update_layout(template="plotly_dark", height=280); st.plotly_chart(fig, use_container_width=True)
-            st.subheader("💰 Component Breakdown")
-            b = int(new_s * 0.7); rem = new_s - b; f = 0 if "Staff" in str(data['Employee Type']) else 300
-            c1, c2, c3 = st.columns(3)
-            c1.markdown(f"""<div class="market-box"><small>Basic Salary</small><br><b class="value-text">{b:,}</b></div>""", unsafe_allow_html=True)
-            c2.markdown(f"""<div class="market-box"><small>Food Allowance</small><br><b class="value-text">{f}</b></div>""", unsafe_allow_html=True)
-            c3.markdown(f"""<div class="market-box"><small>Other Allowances</small><br><b class="value-text">{max(0, rem-f):,}</b></div>""", unsafe_allow_html=True)
+            pct = st.number_input("Increment %", 0.0, 50.0, 5.0)
+            new_s = int(data['Salary'] * (1 + pct/100))
+            st.metric("Proposed Salary", f"{new_s:,} AED", f"+{new_s - int(data['Salary']):,}")
+            fig = go.Figure(go.Indicator(mode="gauge+number", value=new_s, title={'text': "Market Position Gauge"}, gauge={'axis': {'range': [0, data['Market_Avg']*1.5 if data['Market_Avg'] != 0 else 10000]}, 'bar': {'color': "#3b82f6"}}))
+            st.plotly_chart(fig, use_container_width=True)
 
     # 5. TRANSPARENCY LAB
     elif page == "🎯 Transparency Lab":
@@ -316,74 +288,53 @@ if df is not None:
         sel_role = st.selectbox("Select a Designation to view its specific audit trail:", roles_list)
         
         if sel_role == "-- Select Designation --":
-            st.markdown("""
-            <div class="ai-insight-box" style="margin-bottom:25px;">
-                <b>System Statement:</b> The Market Average Calculation Logic used in this system is <b>100% mathematically accurate</b>. 
-                Its statistical precision is optimized by normalizing raw competitor payroll data. Below is the step-by-step logic breakdown.
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="ai-insight-box" style="margin-bottom:25px;"><b>System Statement:</b> The Market Average Calculation Logic used in this system is <b>100% mathematically accurate</b>. Below is the step-by-step logic breakdown.</div>""", unsafe_allow_html=True)
 
             st.markdown("""
             <div class="method-section">
                 <span class="method-header">1. Mathematical Accuracy</span>
-                <p class="method-text">We utilize the <b>Arithmetic Mean</b> method. If data points are available from all 4 competitor companies for a specific role, 
-                the sum of these 4 values is divided by 4, ensuring 100% computational integrity and mathematical precision.</p>
+                <p class="method-text">We utilize the <b>Arithmetic Mean</b> method. If data points are available from all 4 competitor companies, the sum is divided by 4 ensuring computational integrity.</p>
             </div>
             <div class="method-section">
                 <span class="method-header">2. Data Cleaning Logic</span>
-                <p class="method-text">To minimize data errors, the following safety checks are integrated into the engine:</p>
-                <p class="method-text"><span class="sub-point">• Range Normalization:</span> Market data often exists as ranges (e.g., 5,000 - 7,000). 
-                The system identifies the <b>Mid-point (Mean)</b> for a realistic average rather than using a single extreme value.</p>
-                <p class="method-text"><span class="sub-point">• Zero/Null Handling:</span> If a competitor has missing data (N/A or "-"), that entry is 
-                <b>completely excluded</b> from the denominator. This ensures the market average isn't incorrectly deflated by zeros.</p>
+                <p class="method-text"><span class="sub-point">• Range Normalization:</span> Market data exists as ranges (e.g., 5,000 - 7,000). The system identifies the <b>Mid-point (Mean)</b> for a realistic average.</p>
+                <p class="method-text"><span class="sub-point">• Zero/Null Handling:</span> Missing data (N/A) is <b>completely excluded</b> from the denominator.</p>
             </div>
             <div class="method-section">
                 <span class="method-header">3. Advanced Accuracy Perspectives</span>
-                <p class="method-text">Market data parity is improved by addressing company-specific variation through:</p>
-                <p class="method-text"><span class="sub-point">• Calculation Transparency:</span> Formula breakdowns are provided in real-time (e.g., <i>(Asian: 5k + JK: 7k) / 2</i>) 
-                to eliminate "black box" logic and provide auditability.</p>
-                <p class="method-text"><span class="sub-point">• Designation Standardization:</span> Our 'Master Clean' logic maps varying titles 
-                (e.g., "Admin Asst" vs "Administrative Assistant") into a single benchmarked role for accurate cross-company mapping.</p>
+                <p class="method-text"><span class="sub-point">• Calculation Transparency:</span> Formula breakdowns are provided in real-time to eliminate "black box" logic.</p>
+                <p class="method-text"><span class="sub-point">• Designation Standardization:</span> Mapping varying titles into a single benchmarked role.</p>
             </div>
             <div class="method-section" style="border-left: 5px solid #22c55e;">
                 <span class="method-header">4. Practical Reliability</span>
-                <p class="method-text"><b>Board Statement:</b> "This calculation reflects a <b>Fair Market Level</b> based on current competitor payroll data. 
-                It serves as a 100% reliable benchmark for strategic decision-making because all extreme outliers are managed through normalized mid-point aggregation."</p>
-                <hr style="border: 0.1px solid #1f2937; margin: 15px 0;">
-                <p class="method-text" style="font-style: italic;"><b>Summary:</b> While raw market data may vary, our averaging method produces a decision-support 
-                output that is both statistically stable and highly trustworthy for Pioneer Cement Industries.</p>
+                <p class="method-text"><b>Board Statement:</b> "This calculation reflects a Fair Market Level based on current competitor payroll data."</p>
             </div>
             """, unsafe_allow_html=True)
-            
-            st.info("💡 Please select a Designation from the dropdown above to view its real-time data audit.")
             
         else:
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
             
-            # HOD NOTE IN TRANSPARENCY LAB
+            # 🚀 HOD NOTE
             if sel_role in hod_roles:
-                st.markdown(f"""<div class="note-box"><b>Strategic Methodology Override (HOD):</b> Because <b>{sel_role}</b> is mapped as the Head of Department, the raw competitor data points below explicitly reflect the <b>Manager-level</b> compensation benchmark for this engineering sector, rather than a generic engineering scale.</div>""", unsafe_allow_html=True)
-
-            t_str, t_div, t_actual, t_chart = generate_formula_ui(audit, comp_cols)
+                st.markdown(f"""<div class="note-box"><b>Strategic Methodology Override (HOD):</b> Because <b>{sel_role}</b> is mapped as the Head of Department, the raw competitor data points below explicitly reflect the <b>Manager-level</b> compensation benchmark for this sector.</div>""", unsafe_allow_html=True)
             
             st.subheader(f"Audit Trail for: {sel_role}")
-            st.markdown(f"""<div class="formula-display">Market Average = ( {t_str} ) / {t_div}</div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="formula-display">Market Average = ( {audit['Audit_Sum']} ) / {int(audit['Data_Count'])}</div>""", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1: st.metric("Calculated Benchmark", f"{int(audit['Market_Avg']):,} AED")
-            with c2: st.metric("Confidence Level", f"{int((t_actual/4)*100)}%", delta="High Confidence" if t_actual >= 3 else "Moderate")
+            with c2: 
+                conf = (int(audit['Actual_Count'])/4)*100
+                st.metric("Confidence Level", f"{int(conf)}%", delta="High Confidence" if conf >= 75 else "Moderate")
             with c3: st.metric("Pioneer Current Pay", f"{int(audit['Your Salary (AED)']):,} AED")
 
             st.markdown("### 🔍 Raw Competitor Mid-Points")
             chips_cols = st.columns(len(comp_cols))
             
             for i, c in enumerate(comp_cols):
-                matched = next((item for item in t_chart if item["Company"] == c), None)
+                val = str(audit.get(f"Mean_{c}", "nan"))
                 with chips_cols[i]:
-                    if matched:
-                        st.markdown(f"""<div class="audit-card"><small>{c}</small><br><b style="color: #38bdf8; font-size: 20px;">{int(matched['Salary']):,}</b><br><small style="color: #4ade80;">Validated ✅</small></div>""", unsafe_allow_html=True)
+                    if val not in ['nan','-','None','']:
+                        st.markdown(f"""<div class="audit-card"><small>{c}</small><br><b style="color: #38bdf8; font-size: 20px;">{int(float(val)):,}</b><br><small style="color: #4ade80;">Validated ✅</small></div>""", unsafe_allow_html=True)
                     else:
                         st.markdown(f"""<div class="audit-card" style="opacity:0.5;"><small>{c}</small><br><b style="font-size: 20px;">N/A</b><br><small>No Data</small></div>""", unsafe_allow_html=True)
-
-            if t_chart:
-                st.plotly_chart(px.bar(pd.DataFrame(t_chart), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Competitive Spread Comparison", template="plotly_dark"), use_container_width=True)
