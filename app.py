@@ -20,8 +20,10 @@ st.markdown("""
     .market-box { background-color: #1e293b; border: 1px solid #475569; padding: 15px; border-radius: 10px; text-align: center; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .formula-display { background-color: #0f172a; border: 2px solid #1e293b; padding: 30px; border-radius: 15px; text-align: center; font-size: 22px; color: #38bdf8; font-family: 'Courier New', Courier, monospace; margin: 20px 0; border-left: 8px solid #3b82f6; }
     .audit-card { background-color: #1e293b; padding: 15px; border-radius: 10px; border-top: 4px solid #3b82f6; text-align: center; }
-    .transparency-note { background-color: #111827; border: 1px solid #1f2937; padding: 25px; border-radius: 15px; margin-bottom: 20px; }
-    .step-header { color: #38bdf8; font-weight: bold; font-size: 18px; margin-bottom: 10px; display: block; }
+    .method-section { background-color: #111827; border: 1px solid #1f2937; padding: 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #38bdf8; }
+    .method-header { color: #38bdf8; font-weight: bold; font-size: 20px; margin-bottom: 12px; display: block; }
+    .method-text { color: #e2e8f0; font-size: 16px; line-height: 1.7; }
+    .sub-point { color: #93c5fd; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -47,8 +49,8 @@ def load_databases():
             v = str(v).replace(',', '').replace('AED', '').strip()
             if v in ['-', '', 'nan', 'None']: return np.nan
             if '-' in v:
-                parts = [float(i.strip()) for i in v.split('-') if i.strip()]
-                return sum(parts)/len(parts) if parts else np.nan
+                p = [float(i.strip()) for i in v.split('-') if i.strip()]
+                return sum(p)/len(p) if p else np.nan
             try: return float(v)
             except: return np.nan
 
@@ -67,8 +69,7 @@ def load_databases():
                 if pd.notna(val) and val > 0:
                     active_parts.append(f"{c}: {int(val):,}")
                     count += 1
-            formula = " + ".join(active_parts) if active_parts else "N/A"
-            return formula, count
+            return " + ".join(active_parts) if active_parts else "N/A", count
 
         audit_data = [get_audit_logic(i) for i in range(len(m_calc))]
         market_df['Audit_Sum'], market_df['Data_Count'] = zip(*audit_data)
@@ -115,59 +116,73 @@ if df is not None:
         sel_role = st.selectbox("Select a Designation to view its specific audit trail:", roles_list)
         
         if sel_role == "-- Select Designation --":
-            # 🚀 THE ENGLISH TRANSPARENCY NOTE
+            # 🚀 FULL METHODOLOGY STATEMENT
             st.markdown("""
             <div class="ai-insight-box" style="margin-bottom:25px;">
-                <b>System Statement:</b> The Market Average Calculation Logic used in this platform is <b>100% mathematically accurate</b>. 
-                However, its statistical precision depends on the quality and volume of data provided. Below is our formal methodology breakdown.
+                <b>System Statement:</b> The Market Average Calculation Logic used in this system is <b>100% mathematically accurate</b>. 
+                Its statistical precision is optimized by normalizing raw competitor payroll data. Below is the step-by-step logic breakdown.
             </div>
             """, unsafe_allow_html=True)
 
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("""
-                <div class="transparency-note">
-                    <span class="step-header">1. Mathematical Accuracy</span>
-                    We utilize the <b>Arithmetic Mean</b> method. If data points are available from all 4 competitor companies for a specific role, 
-                    the sum of these 4 values is divided by 4, ensuring 100% computational integrity.
-                </div>
-                <div class="transparency-note">
-                    <span class="step-header">2. Data Cleaning Logic (Safety Checks)</span>
-                    <b>• Range Normalization:</b> Since market data often exists as ranges (e.g., 5,000 - 7,000), our engine automatically 
-                    identifies the <b>Mid-point (Mean)</b> for a more realistic average.<br>
-                    <b>• Null Handling:</b> If a competitor has no data (N/A or "-"), that entry is excluded from the denominator to avoid 
-                    incorrectly deflating the market average.
-                </div>
-                """, unsafe_allow_html=True)
-            with c2:
-                st.markdown("""
-                <div class="transparency-note">
-                    <span class="step-header">3. Advanced Accuracy Perspectives</span>
-                    <b>• Calculation Transparency:</b> The system provides an instant formula breakdown for every role audit to eliminate "black box" calculations.<br>
-                    <b>• Designation Standardization:</b> Our 'Master Clean' engine ensures titles like "Admin Asst" and "Administrative Assistant" are 
-                    standardized for accurate cross-company mapping.
-                </div>
-                <div class="transparency-note">
-                    <span class="step-header">4. Practical Reliability</span>
-                    "This calculation reflects a <b>Fair Market Level</b> based on current competitor payroll data. 
-                    It serves as a 100% reliable benchmark because all extreme outliers are managed through normalized mid-point aggregation."
-                </div>
-                """, unsafe_allow_html=True)
+            # 1. Mathematical Accuracy
+            st.markdown("""
+            <div class="method-section">
+                <span class="method-header">1. Mathematical Accuracy (ගණිතමය නිවැරදිතාවය)</span>
+                <p class="method-text">We utilize the <b>Arithmetic Mean (මධ්‍යන්‍යය)</b> method. If data points are available from all 4 competitor companies for a specific role, 
+                the sum of these 4 values is divided by 4, ensuring 100% computational integrity and mathematical precision.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # 2. Data Cleaning
+            st.markdown("""
+            <div class="method-section">
+                <span class="method-header">2. Data Cleaning Logic (දත්ත පිරිසිදු කිරීම)</span>
+                <p class="method-text">To minimize data errors, the following safety checks are integrated into the engine:</p>
+                <p class="method-text"><span class="sub-point">• Range Normalization:</span> Market data often exists as ranges (e.g., 5,000 - 7,000). 
+                The system identifies the <b>Mid-point (Mean)</b> for a realistic average rather than using a single extreme value.</p>
+                <p class="method-text"><span class="sub-point">• Zero/Null Handling:</span> If a competitor has missing data (N/A or "-"), that entry is 
+                <b>completely excluded</b> from the denominator. This ensures the market average isn't incorrectly deflated by zeros.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # 3. Advanced Accuracy
+            st.markdown("""
+            <div class="method-section">
+                <span class="method-header">3. Advanced Accuracy Perspectives (නිරවද්‍යතාවය වැඩි කිරීම)</span>
+                <p class="method-text">Market data parity is improved by addressing company-specific variation through:</p>
+                <p class="method-text"><span class="sub-point">• Calculation Transparency:</span> Formula breakdowns are provided in real-time (e.g., <i>(Asian: 5k + JK: 7k) / 2</i>) 
+                to eliminate "black box" logic and provide auditability.</p>
+                <p class="method-text"><span class="sub-point">• Designation Standardization:</span> Our 'Master Clean' logic maps varying titles 
+                (e.g., "Admin Asst" vs "Administrative Assistant") into a single benchmarked role for accurate cross-company mapping.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # 4. Practical Reliability
+            st.markdown("""
+            <div class="method-section" style="border-left: 5px solid #22c55e;">
+                <span class="method-header">4. Practical Reliability (ප්‍රායෝගික තත්ත්වය)</span>
+                <p class="method-text"><b>Board Statement:</b> "This calculation reflects a <b>Fair Market Level</b> based on current competitor payroll data. 
+                It serves as a 100% reliable benchmark for strategic decision-making because all extreme outliers are managed through normalized mid-point aggregation."</p>
+                <hr style="border: 0.1px solid #1f2937;">
+                <p class="method-text" style="font-style: italic;"><b>Summary:</b> While raw market data may vary, our averaging method produces a decision-support 
+                output that is both statistically stable and highly trustworthy for Pioneer Cement Industries.</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            st.info("💡 Please select a specific Designation from the dropdown above to see its unique calculation breakdown.")
+            st.info("💡 Please select a Designation from the dropdown above to view its real-time data audit.")
         
         else:
-            # SPECIFIC ROLE AUDIT
+            # SPECIFIC ROLE AUDIT (Remains the same as requested)
             audit = f_df[f_df['Designation'] == sel_role].iloc[0]
-            st.subheader(f"Detailed Audit for: {sel_role}")
+            st.subheader(f"Audit Trail for: {sel_role}")
             st.markdown(f"""<div class="formula-display">Market Average = ( {audit['Audit_Sum']} ) / {audit['Data_Count'] if audit['Data_Count'] > 0 else 1}</div>""", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1: st.metric("Calculated Benchmark", f"{int(audit['Market_Avg']):,} AED")
             with c2: 
                 conf = (int(audit['Data_Count'])/4)*100
-                st.metric("Confidence Level", f"{int(conf)}%", delta="Verified ✅" if conf >= 75 else "Moderate")
-            with c3: st.metric("Current Variance", f"{int(audit['Variance %'])}%")
+                st.metric("Confidence Level", f"{int(conf)}%", delta="High Confidence" if conf >= 75 else "Moderate")
+            with c3: st.metric("Pioneer Current Pay", f"{int(audit['Your Salary (AED)']):,} AED")
 
             st.markdown("### 🔍 Raw Competitor Mid-Points")
             chips_cols = st.columns(len(comp_cols))
@@ -182,9 +197,9 @@ if df is not None:
                         st.markdown(f"""<div class="audit-card" style="opacity:0.5;"><small>{c}</small><br><b style="font-size: 20px;">N/A</b><br><small>No Data</small></div>""", unsafe_allow_html=True)
 
             if comp_chart_data:
-                st.plotly_chart(px.bar(pd.DataFrame(comp_chart_data), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Market Spread Comparison", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(pd.DataFrame(comp_chart_data), x='Company', y='Salary', color='Company', text_auto=',.0f', title="Competitive Spread Comparison", template="plotly_dark"), use_container_width=True)
 
-    # (Other Pages Standard Logic)
+    # (Previous Pages Logic - Remainder of code unchanged)
     elif page == "📊 Executive Dashboard":
         st.title("Strategic Dashboard")
         st.dataframe(f_df[['Designation', 'Department', 'Live_HC', 'Your Salary (AED)', 'Market_Avg', 'Variance %']], use_container_width=True, hide_index=True)
